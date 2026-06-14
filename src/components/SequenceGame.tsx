@@ -348,7 +348,7 @@ export default function SequenceGame() {
               영어 시퀀스 게임
             </button>
           </div>
-          <p className="home-studio-mark">ASHTANGA YOGA STUDIO</p>
+          <p className="home-studio-mark">- ASHTANGA YOGA STUDIO -</p>
         </section>
       ) : null}
 
