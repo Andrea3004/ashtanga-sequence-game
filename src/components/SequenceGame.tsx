@@ -348,9 +348,7 @@ export default function SequenceGame() {
               영어 시퀀스 게임
             </button>
           </div>
-          <div className="home-logo-wrap">
-            <img className="home-logo" src="/logo.png" alt="Ashtanga sequence game logo" />
-          </div>
+          <p className="home-studio-mark">ASHTANGA YOGA STUDIO</p>
         </section>
       ) : null}
 

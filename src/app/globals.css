@@ -287,16 +287,14 @@ button:focus-visible {
   line-height: 1.55;
 }
 
-.home-logo-wrap {
-  display: flex;
-  justify-content: center;
-  margin-top: 36px;
-}
-
-.home-logo {
-  display: block;
-  width: min(180px, 54vw);
-  height: auto;
+.home-studio-mark {
+  margin: 36px 0 0;
+  color: #fff7ed;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  opacity: 0.55;
+  text-align: center;
 }
 
 .result-score {
