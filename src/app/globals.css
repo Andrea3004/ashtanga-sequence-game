@@ -287,6 +287,18 @@ button:focus-visible {
   line-height: 1.55;
 }
 
+.home-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 36px;
+}
+
+.home-logo {
+  display: block;
+  width: min(180px, 54vw);
+  height: auto;
+}
+
 .result-score {
   margin: 4px 0 0;
   color: #fbbf24;
