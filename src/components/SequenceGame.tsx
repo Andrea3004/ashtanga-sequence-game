@@ -367,7 +367,7 @@ export default function SequenceGame() {
             <button className="button secondary" type="button" onClick={startEnglish}>
               산스크리트 이름 게임
             </button>
-            <button className="button ghost" type="button" onClick={() => setMode("reverse-level-select")}>
+            <button className="button reverse" type="button" onClick={() => setMode("reverse-level-select")}>
               리버스 시퀀스 게임
             </button>
           </div>
