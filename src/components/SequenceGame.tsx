@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  asanaEnglishNames,
   FALLBACK_CHOICES,
   primaryFullEnglishSequence,
   primaryLevels,
@@ -13,6 +14,7 @@ import {
 type Mode = "home" | "level-select" | "reverse-level-select" | "primary" | "reverse" | "english" | "result";
 type GameMode = "primary" | "reverse" | "english";
 type Feedback = "correct" | "wrong" | "timeout" | null;
+type Locale = "ko" | "en";
 
 type EnglishRound = {
   prompt: string;
@@ -22,6 +24,76 @@ type EnglishRound = {
 
 const STARTING_LIVES = 3;
 const ENGLISH_TIME_LIMIT = 12;
+const LOCALE_STORAGE_KEY = "ashtanga-sequence-game-locale";
+
+const translations = {
+  ko: {
+    appTitle: "아쉬탕가 시퀀스 게임",
+    instantStart: "로그인 없이 바로 시작",
+    description: "프라이머리 순서와 산스크리트 이름을 짧게 반복해요.",
+    primaryGame: "프라이머리 시퀀스 게임",
+    sanskritGame: "산스크리트 이름 게임",
+    reverseGame: "리버스 시퀀스 게임",
+    selectLevel: "레벨 선택",
+    home: "홈",
+    restart: "다시 시작",
+    tryAgain: "다시 도전",
+    gameOver: "GAME OVER",
+    levelClear: "LEVEL CLEAR",
+    completed: "COMPLETE",
+    correct: "정답!",
+    wrong: "오답!",
+    timeout: "시간초과!",
+    score: "점수",
+    combo: "콤보",
+    life: "라이프",
+    time: "시간",
+    remainingLives: "남은 라이프",
+    primaryOnly: "프라이머리 전용",
+    sanskritInstruction: "한글 음역을 고르세요",
+  },
+  en: {
+    appTitle: "Ashtanga Sequence Game",
+    instantStart: "Start instantly. No login required.",
+    description: "Practice the Primary Series sequence and Sanskrit names through quick repetition.",
+    primaryGame: "Primary Sequence Game",
+    sanskritGame: "Sanskrit Name Game",
+    reverseGame: "Reverse Sequence Game",
+    selectLevel: "Select Level",
+    home: "Home",
+    restart: "Restart",
+    tryAgain: "Try Again",
+    gameOver: "GAME OVER",
+    levelClear: "LEVEL CLEAR",
+    completed: "COMPLETED",
+    correct: "Correct!",
+    wrong: "Wrong!",
+    timeout: "Time's up!",
+    score: "Score",
+    combo: "Combo",
+    life: "Life",
+    time: "Time",
+    remainingLives: "Lives remaining",
+    primaryOnly: "Primary only",
+    sanskritInstruction: "Choose the Korean transliteration.",
+  },
+} as const;
+
+const englishPrimaryLevelTitles = [
+  "LEVEL 1 · Surya A",
+  "LEVEL 2 · Surya B",
+  "LEVEL 3 · Six Fundamentals",
+  "LEVEL 4 · Standing Sequence",
+  "LEVEL 5 · Seated Half",
+  "LEVEL 6 · Full Primary",
+  "LEVEL 7 · Finishing Sequence",
+] as const;
+
+const englishReverseLevelTitles = [
+  "LEVEL 1 · Finishing Sequence",
+  "LEVEL 2 · Seated Sequence",
+  "LEVEL 3 · Standing Sequence",
+] as const;
 
 function shuffleArray<T>(array: T[]) {
   return [...array].sort(() => Math.random() - 0.5);
@@ -57,6 +129,7 @@ function makeEnglishRounds() {
 }
 
 export default function SequenceGame() {
+  const [locale, setLocale] = useState<Locale>("ko");
   const [mode, setMode] = useState<Mode>("home");
   const [gameMode, setGameMode] = useState<GameMode>("primary");
   const [selectedLevel, setSelectedLevel] = useState<LevelConfig | null>(null);
@@ -79,6 +152,39 @@ export default function SequenceGame() {
   const isSequenceMode = mode === "primary" || mode === "reverse";
   const isPlaying = isSequenceMode || mode === "english";
   const hasNextPrompt = isSequenceMode ? Boolean(nextAsana) : Boolean(englishRound);
+  const text = translations[locale];
+
+  function getLevelTitle(level: LevelConfig, levelMode: "primary" | "reverse") {
+    if (locale === "ko") return level.title;
+
+    const titles = levelMode === "reverse" ? englishReverseLevelTitles : englishPrimaryLevelTitles;
+    return titles[level.id - 1] ?? level.title;
+  }
+
+  function changeLocale(nextLocale: Locale) {
+    setLocale(nextLocale);
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
+
+    if (nextLocale === "en" && (mode === "english" || gameMode === "english")) {
+      goHome();
+    }
+  }
+
+  function getAsanaDisplayName(asana: string) {
+    return locale === "en" ? asanaEnglishNames[asana] ?? asana : asana;
+  }
+
+  useEffect(() => {
+    const savedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+
+    if (savedLocale === "ko" || savedLocale === "en") {
+      setLocale(savedLocale);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
 
   useEffect(() => {
     const correct = new Audio("/sounds/correct.mp3");
@@ -255,17 +361,17 @@ export default function SequenceGame() {
       <main className="app-shell feedback-wrong">
         <section className="screen">
           <div className="panel center-panel">
-            <p className="eyebrow">GAME OVER</p>
-            <h1 className="brand">다시 도전</h1>
+            <p className="eyebrow">{text.gameOver}</p>
+            <h1 className="brand">{text.tryAgain}</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
           <div className="stack">
             <button className="button primary" type="button" onClick={restart}>
-              다시 시작
+              {text.restart}
             </button>
             <button className="button ghost" type="button" onClick={goHome}>
-              메인으로
+              {text.home}
             </button>
           </div>
         </section>
@@ -278,8 +384,8 @@ export default function SequenceGame() {
       <main className="app-shell">
         <section className="screen">
           <div className="panel center-panel">
-            <p className="eyebrow">LEVEL CLEAR</p>
-            <h1 className="brand">{selectedLevel.title}</h1>
+            <p className="eyebrow">{text.levelClear}</p>
+            <h1 className="brand">{getLevelTitle(selectedLevel, mode === "reverse" ? "reverse" : "primary")}</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
@@ -289,10 +395,10 @@ export default function SequenceGame() {
               type="button"
               onClick={() => setMode(mode === "reverse" ? "reverse-level-select" : "level-select")}
             >
-              레벨 선택
+              {text.selectLevel}
             </button>
             <button className="button ghost" type="button" onClick={goHome}>
-              메인으로
+              {text.home}
             </button>
           </div>
         </section>
@@ -305,17 +411,17 @@ export default function SequenceGame() {
       <main className="app-shell">
         <section className="screen">
           <div className="panel center-panel">
-            <p className="eyebrow">COMPLETE</p>
-            <h1 className="brand">산스크리트 이름 게임</h1>
+            <p className="eyebrow">{text.completed}</p>
+            <h1 className="brand">{text.sanskritGame}</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
           <div className="stack">
             <button className="button primary" type="button" onClick={restart}>
-              다시 시작
+              {text.restart}
             </button>
             <button className="button ghost" type="button" onClick={goHome}>
-              메인으로
+              {text.home}
             </button>
           </div>
         </section>
@@ -327,48 +433,53 @@ export default function SequenceGame() {
     <main className={`app-shell ${feedback ? `feedback-${feedback}` : ""}`}>
       {feedback ? (
         <div className="feedback-toast">
-          {feedback === "correct" ? "정답!" : feedback === "wrong" ? "오답!" : "시간초과!"}
+          {feedback === "correct" ? text.correct : feedback === "wrong" ? text.wrong : text.timeout}
         </div>
       ) : null}
 
       <div className="top-bar">
         <div>
-          <p className="eyebrow">Primary only</p>
+          <p className="eyebrow">{text.primaryOnly}</p>
           <h1 className="brand">
             {mode === "level-select" || mode === "reverse-level-select"
-              ? "레벨 선택"
+              ? text.selectLevel
               : mode === "primary"
-                ? selectedLevel?.title
+                ? selectedLevel && getLevelTitle(selectedLevel, "primary")
                 : mode === "reverse"
-                  ? selectedLevel?.title
+                  ? selectedLevel && getLevelTitle(selectedLevel, "reverse")
                 : mode === "english"
-                  ? "산스크리트 이름 게임"
-                  : "아쉬탕가 시퀀스 게임"}
+                  ? text.sanskritGame
+                  : text.appTitle}
           </h1>
         </div>
-        {mode !== "home" ? (
-          <button className="button ghost small-button" type="button" onClick={goHome}>
-            홈
-          </button>
-        ) : null}
+        <div className="top-actions">
+          <LocaleSwitch locale={locale} onChange={changeLocale} />
+          {mode !== "home" ? (
+            <button className="button ghost small-button" type="button" onClick={goHome}>
+              {text.home}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {mode === "home" ? (
         <section className="screen">
           <div>
-            <p className="eyebrow">로그인 없이 바로 시작</p>
-            <h2 className="brand">아쉬탕가 시퀀스 게임</h2>
-            <p className="small-copy">프라이머리 순서와 산스크리트 이름을 짧게 반복해요.</p>
+            <p className="eyebrow">{text.instantStart}</p>
+            <h2 className="brand">{text.appTitle}</h2>
+            <p className="small-copy">{text.description}</p>
           </div>
           <div className="stack">
             <button className="button primary" type="button" onClick={() => setMode("level-select")}>
-              프라이머리 시퀀스 게임
+              {text.primaryGame}
             </button>
-            <button className="button secondary" type="button" onClick={startEnglish}>
-              산스크리트 이름 게임
-            </button>
+            {locale === "ko" ? (
+              <button className="button secondary" type="button" onClick={startEnglish}>
+                {text.sanskritGame}
+              </button>
+            ) : null}
             <button className="button reverse" type="button" onClick={() => setMode("reverse-level-select")}>
-              리버스 시퀀스 게임
+              {text.reverseGame}
             </button>
           </div>
           <p className="home-studio-mark">- ASHTANGA YOGA STUDIO -</p>
@@ -379,7 +490,7 @@ export default function SequenceGame() {
         <section className="stack level-list">
           {primaryLevels.map((level) => (
             <button className="button level-button" key={level.id} type="button" onClick={() => startPrimary(level)}>
-              <span className="level-title">{level.title}</span>
+              <span className="level-title">{getLevelTitle(level, "primary")}</span>
             </button>
           ))}
         </section>
@@ -389,7 +500,7 @@ export default function SequenceGame() {
         <section className="stack level-list">
           {reverseLevels.map((level) => (
             <button className="button level-button" key={level.id} type="button" onClick={() => startReverse(level)}>
-              <span className="level-title">{level.title}</span>
+              <span className="level-title">{getLevelTitle(level, "reverse")}</span>
             </button>
           ))}
         </section>
@@ -398,21 +509,24 @@ export default function SequenceGame() {
       {isSequenceMode && selectedLevel && nextAsana ? (
         <GameBoard
           choices={choices}
+          displayChoice={getAsanaDisplayName}
           combo={combo}
           currentLabel="CURRENT ASANA"
-          currentPrompt={currentAsana}
+          currentPrompt={getAsanaDisplayName(currentAsana)}
           lives={lives}
           nextLabel={mode === "reverse" ? "PREVIOUS ASANA?" : "NEXT ASANA?"}
           onChoice={handleSequenceChoice}
           score={score}
+          statLabels={text}
           timeLeft={timeLeft}
-          title={selectedLevel.title}
+          title={getLevelTitle(selectedLevel, mode === "reverse" ? "reverse" : "primary")}
         />
       ) : null}
 
       {mode === "english" && englishRound ? (
         <GameBoard
           choices={choices}
+          displayChoice={(choice) => choice}
           combo={combo}
           currentLabel="SANSKRIT"
           currentPrompt={englishRound.prompt}
@@ -420,8 +534,9 @@ export default function SequenceGame() {
           nextLabel="NEXT ASANA?"
           onChoice={handleEnglishChoice}
           score={score}
+          statLabels={text}
           timeLeft={timeLeft}
-          title="한글 음역을 고르세요"
+          title={text.sanskritInstruction}
         />
       ) : null}
     </main>
@@ -433,10 +548,12 @@ function GameBoard({
   combo,
   currentLabel,
   currentPrompt,
+  displayChoice,
   lives,
   nextLabel,
   onChoice,
   score,
+  statLabels,
   timeLeft,
   title,
 }: {
@@ -444,10 +561,12 @@ function GameBoard({
   combo: number;
   currentLabel: string;
   currentPrompt: string;
+  displayChoice: (choice: string) => string;
   lives: number;
   nextLabel: string;
   onChoice: (choice: string) => void;
   score: number;
+  statLabels: (typeof translations)[Locale];
   timeLeft: number;
   title: string;
 }) {
@@ -462,19 +581,19 @@ function GameBoard({
 
       <div className="stats">
         <div className="stat">
-          <span>점수</span>
+          <span>{statLabels.score}</span>
           <strong>{score}</strong>
         </div>
         <div className="stat">
-          <span>콤보</span>
+          <span>{statLabels.combo}</span>
           <strong>{combo}</strong>
         </div>
         <div className="stat">
-          <span>라이프</span>
+          <span>{statLabels.life}</span>
           <strong>{lives}</strong>
         </div>
         <div className="stat">
-          <span>시간</span>
+          <span>{statLabels.time}</span>
           <strong>{timeLeft}</strong>
         </div>
       </div>
@@ -482,7 +601,7 @@ function GameBoard({
       <div className="current-panel">
         <p>{currentLabel}</p>
         <h3>{currentPrompt}</h3>
-        <div className="life-dots" aria-label={`남은 라이프 ${lives}`}>
+        <div className="life-dots" aria-label={`${statLabels.remainingLives} ${lives}`}>
           {Array.from({ length: lives }).map((_, index) => (
             <span key={index} />
           ))}
@@ -496,10 +615,40 @@ function GameBoard({
       <div className="choice-grid">
         {choices.map((choice) => (
           <button className="button option" key={choice} type="button" onClick={() => onChoice(choice)}>
-            {choice}
+            {displayChoice(choice)}
           </button>
         ))}
       </div>
     </section>
+  );
+}
+
+function LocaleSwitch({
+  locale,
+  onChange,
+}: {
+  locale: Locale;
+  onChange: (locale: Locale) => void;
+}) {
+  return (
+    <div className="locale-switch" role="group" aria-label="Language">
+      <button
+        className={locale === "ko" ? "active" : ""}
+        type="button"
+        aria-pressed={locale === "ko"}
+        onClick={() => onChange("ko")}
+      >
+        KR
+      </button>
+      <span aria-hidden="true">/</span>
+      <button
+        className={locale === "en" ? "active" : ""}
+        type="button"
+        aria-pressed={locale === "en"}
+        onClick={() => onChange("en")}
+      >
+        EN
+      </button>
+    </div>
   );
 }
