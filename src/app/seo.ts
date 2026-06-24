@@ -7,6 +7,7 @@ export const siteConfig = {
   socialDescription: "프라이머리 시리즈 순서를 게임으로 학습하세요",
   url: "https://ashtanga-sequence-game.vercel.app",
   image: "/logo.png",
+  socialImage: "/og-image.png",
   themeColor: "#070711",
   keywords: [
     "아쉬탕가 요가",

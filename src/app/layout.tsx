@@ -32,9 +32,9 @@ export const metadata: Metadata = {
     description: siteConfig.socialDescription,
     images: [
       {
-        url: siteConfig.image,
-        width: 200,
-        height: 73,
+        url: siteConfig.socialImage,
+        width: 1536,
+        height: 1024,
         alt: siteConfig.koreanName,
       },
     ],
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: siteConfig.koreanName,
     description: siteConfig.socialDescription,
-    images: [siteConfig.image],
+    images: [siteConfig.socialImage],
   },
   icons: {
     icon: siteConfig.image,
