@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import GoogleAnalytics from "./GoogleAnalytics";
 import { absoluteUrl, siteConfig } from "./seo";
 
 export const metadata: Metadata = {
@@ -93,6 +94,7 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         {children}
+        {process.env.NODE_ENV === "production" && <GoogleAnalytics />}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
