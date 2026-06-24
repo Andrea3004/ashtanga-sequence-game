@@ -141,6 +141,29 @@ export const primaryLevels: LevelConfig[] = [
   { id: 7, title: "LEVEL 7 · 피니슁", sequence: finishingSequence, timeLimit: 8 },
 ];
 
+const seatedSequence = [...seatedHalfSequence, ...fullSeriesSequence];
+
+export const reverseLevels: LevelConfig[] = [
+  {
+    id: 1,
+    title: "LEVEL 1 · 피니슁 시퀀스",
+    sequence: [...finishingSequence].reverse(),
+    timeLimit: 12,
+  },
+  {
+    id: 2,
+    title: "LEVEL 2 · 싯티드 시퀀스",
+    sequence: [...seatedSequence].reverse(),
+    timeLimit: 12,
+  },
+  {
+    id: 3,
+    title: "LEVEL 3 · 스탠딩 시퀀스",
+    sequence: [...standingSequence].reverse(),
+    timeLimit: 12,
+  },
+];
+
 export const englishQuizPool: EnglishQuizPose[] = [
   { sanskrit: "Samasthiti", transliteration: "사마스티티" },
   { sanskrit: "Uttanasana", transliteration: "우타나아사나" },

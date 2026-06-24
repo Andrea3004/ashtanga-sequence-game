@@ -5,12 +5,13 @@ import {
   FALLBACK_CHOICES,
   primaryFullEnglishSequence,
   primaryLevels,
+  reverseLevels,
   type EnglishQuizPose,
   type LevelConfig,
 } from "@/data/primarySequence";
 
-type Mode = "home" | "level-select" | "primary" | "english" | "result";
-type GameMode = "primary" | "english";
+type Mode = "home" | "level-select" | "reverse-level-select" | "primary" | "reverse" | "english" | "result";
+type GameMode = "primary" | "reverse" | "english";
 type Feedback = "correct" | "wrong" | "timeout" | null;
 
 type EnglishRound = {
@@ -75,8 +76,9 @@ export default function SequenceGame() {
   const currentAsana = sequence[currentIndex];
   const nextAsana = sequence[currentIndex + 1];
   const englishRound = englishRounds[currentIndex];
-  const isPlaying = mode === "primary" || mode === "english";
-  const hasNextPrompt = mode === "primary" ? Boolean(nextAsana) : Boolean(englishRound);
+  const isSequenceMode = mode === "primary" || mode === "reverse";
+  const isPlaying = isSequenceMode || mode === "english";
+  const hasNextPrompt = isSequenceMode ? Boolean(nextAsana) : Boolean(englishRound);
 
   useEffect(() => {
     const correct = new Audio("/sounds/correct.mp3");
@@ -88,14 +90,14 @@ export default function SequenceGame() {
   }, []);
 
   useEffect(() => {
-    if (mode !== "primary" || !selectedLevel || !nextAsana) return;
+    if (!isSequenceMode || !selectedLevel || !nextAsana) return;
 
     const wrongChoices = Array.from(new Set([...sequence, ...FALLBACK_CHOICES]))
       .filter((asana) => asana !== nextAsana && asana !== currentAsana)
       .slice(0, 3);
 
     setChoices(shuffleArray([nextAsana, ...wrongChoices].filter(Boolean)));
-  }, [currentAsana, mode, nextAsana, selectedLevel, sequence]);
+  }, [currentAsana, isSequenceMode, nextAsana, selectedLevel, sequence]);
 
   useEffect(() => {
     if (mode === "english" && englishRound) {
@@ -154,6 +156,14 @@ export default function SequenceGame() {
     setMode("primary");
   }
 
+  function startReverse(level: LevelConfig) {
+    setGameMode("reverse");
+    setSelectedLevel(level);
+    setEnglishRounds([]);
+    resetRunState(level.timeLimit);
+    setMode("reverse");
+  }
+
   function startEnglish() {
     setGameMode("english");
     setSelectedLevel(null);
@@ -173,11 +183,11 @@ export default function SequenceGame() {
     if (mode === "english") {
       setCurrentIndex((prev) => prev + 1);
     }
-    setTimeLeft(mode === "primary" ? selectedLevel?.timeLimit ?? 0 : ENGLISH_TIME_LIMIT);
+    setTimeLeft(isSequenceMode ? selectedLevel?.timeLimit ?? 0 : ENGLISH_TIME_LIMIT);
     clearFeedbackSoon();
   }
 
-  function handlePrimaryChoice(choice: string) {
+  function handleSequenceChoice(choice: string) {
     if (!nextAsana || feedback) return;
 
     if (choice === nextAsana) {
@@ -229,11 +239,15 @@ export default function SequenceGame() {
     }
 
     if (selectedLevel) {
-      startPrimary(selectedLevel);
+      if (gameMode === "reverse") {
+        startReverse(selectedLevel);
+      } else {
+        startPrimary(selectedLevel);
+      }
       return;
     }
 
-    setMode("level-select");
+    setMode(gameMode === "reverse" ? "reverse-level-select" : "level-select");
   }
 
   if (lives <= 0 && isPlaying) {
@@ -259,7 +273,7 @@ export default function SequenceGame() {
     );
   }
 
-  if (mode === "primary" && selectedLevel && !nextAsana) {
+  if (isSequenceMode && selectedLevel && !nextAsana) {
     return (
       <main className="app-shell">
         <section className="screen">
@@ -270,7 +284,11 @@ export default function SequenceGame() {
             <p className="small-copy">FLOW x{combo}</p>
           </div>
           <div className="stack">
-            <button className="button primary" type="button" onClick={() => setMode("level-select")}>
+            <button
+              className="button primary"
+              type="button"
+              onClick={() => setMode(mode === "reverse" ? "reverse-level-select" : "level-select")}
+            >
               레벨 선택
             </button>
             <button className="button ghost" type="button" onClick={goHome}>
@@ -288,7 +306,7 @@ export default function SequenceGame() {
         <section className="screen">
           <div className="panel center-panel">
             <p className="eyebrow">COMPLETE</p>
-            <h1 className="brand">영어 시퀀스 게임</h1>
+            <h1 className="brand">산스크리트 이름 게임</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
@@ -317,12 +335,14 @@ export default function SequenceGame() {
         <div>
           <p className="eyebrow">Primary only</p>
           <h1 className="brand">
-            {mode === "level-select"
+            {mode === "level-select" || mode === "reverse-level-select"
               ? "레벨 선택"
               : mode === "primary"
                 ? selectedLevel?.title
+                : mode === "reverse"
+                  ? selectedLevel?.title
                 : mode === "english"
-                  ? "영어 시퀀스 게임"
+                  ? "산스크리트 이름 게임"
                   : "아쉬탕가 시퀀스 게임"}
           </h1>
         </div>
@@ -345,7 +365,10 @@ export default function SequenceGame() {
               프라이머리 시퀀스 게임
             </button>
             <button className="button secondary" type="button" onClick={startEnglish}>
-              영어 시퀀스 게임
+              산스크리트 이름 게임
+            </button>
+            <button className="button ghost" type="button" onClick={() => setMode("reverse-level-select")}>
+              리버스 시퀀스 게임
             </button>
           </div>
           <p className="home-studio-mark">- ASHTANGA YOGA STUDIO -</p>
@@ -362,14 +385,25 @@ export default function SequenceGame() {
         </section>
       ) : null}
 
-      {mode === "primary" && selectedLevel && nextAsana ? (
+      {mode === "reverse-level-select" ? (
+        <section className="stack level-list">
+          {reverseLevels.map((level) => (
+            <button className="button level-button" key={level.id} type="button" onClick={() => startReverse(level)}>
+              <span className="level-title">{level.title}</span>
+            </button>
+          ))}
+        </section>
+      ) : null}
+
+      {isSequenceMode && selectedLevel && nextAsana ? (
         <GameBoard
           choices={choices}
           combo={combo}
           currentLabel="CURRENT ASANA"
           currentPrompt={currentAsana}
           lives={lives}
-          onChoice={handlePrimaryChoice}
+          nextLabel={mode === "reverse" ? "PREVIOUS ASANA?" : "NEXT ASANA?"}
+          onChoice={handleSequenceChoice}
           score={score}
           timeLeft={timeLeft}
           title={selectedLevel.title}
@@ -383,6 +417,7 @@ export default function SequenceGame() {
           currentLabel="SANSKRIT"
           currentPrompt={englishRound.prompt}
           lives={lives}
+          nextLabel="NEXT ASANA?"
           onChoice={handleEnglishChoice}
           score={score}
           timeLeft={timeLeft}
@@ -399,6 +434,7 @@ function GameBoard({
   currentLabel,
   currentPrompt,
   lives,
+  nextLabel,
   onChoice,
   score,
   timeLeft,
@@ -409,6 +445,7 @@ function GameBoard({
   currentLabel: string;
   currentPrompt: string;
   lives: number;
+  nextLabel: string;
   onChoice: (choice: string) => void;
   score: number;
   timeLeft: number;
@@ -453,7 +490,7 @@ function GameBoard({
       </div>
 
       <div className="next-row">
-        <p>NEXT ASANA?</p>
+        <p>{nextLabel}</p>
       </div>
 
       <div className="choice-grid">
