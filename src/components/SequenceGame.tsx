@@ -489,7 +489,7 @@ export default function SequenceGame() {
   </a>
 
   <a href="https://www.instagram.com/ashtangayoga_korea" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-    <img src="/icons/instagram.png" alt="Instagram" />
+    <img src="/icons/Instagram.png" alt="Instagram" />
      <span>Instagram</span>
   </a>
 </div>
