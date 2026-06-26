@@ -505,24 +505,25 @@ button:focus-visible {
   display: flex;
   justify-content: center;
   gap: 32px;
-  margin-top: 2px;
-  margin-bottom: 2px;
+  margin: 6px 0 8px;
 }
 
 .social-row a {
   display: flex;
-  flex-direction: column;   /* 아이콘 위, 글씨 아래 */
+  flex-direction: column;
   align-items: center;
   text-decoration: none;
   color: #cfcfcf;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  gap: 2px;
+  line-height: 1;
+  gap: 8px;               /* 8px → 2px */
 }
 
 .social-row img {
   width: 40px;
   height: 40px;
+  display: block;
   transition: transform .2s;
 }
 
