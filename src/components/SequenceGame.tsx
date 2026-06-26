@@ -482,6 +482,18 @@ export default function SequenceGame() {
               {text.reverseGame}
             </button>
           </div>
+          <div className="social-row">
+  <a href="https://cafe.naver.com/ashtangayoga" target="_blank" rel="noopener noreferrer" aria-label="Naver Cafe">
+    <img src="/icons/naver-cafe.png" alt="Naver Cafe" />
+      <span>Community</span>
+  </a>
+
+  <a href="https://www.instagram.com/ashtangayoga_korea" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+    <img src="/icons/instagram.png" alt="Instagram" />
+     <span>Instagram</span>
+  </a>
+</div>
+
           <p className="home-studio-mark">- ASHTANGA YOGA STUDIO -</p>
         </section>
       ) : null}
