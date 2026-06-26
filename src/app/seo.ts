@@ -5,7 +5,7 @@ export const siteConfig = {
   description:
     "아쉬탕가 요가 프라이머리 시리즈 순서와 산스크리트 아사나 이름을 게임으로 학습하는 무료 수련 앱",
   socialDescription: "프라이머리 시리즈 순서를 게임으로 학습하세요",
-  url: "https://ashtanga-sequence-game.vercel.app",
+  url: "https://game.ashtanga.or.kr",
   image: "/logo.png",
   socialImage: "/og-image.png",
   themeColor: "#070711",
