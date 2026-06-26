@@ -517,7 +517,7 @@ button:focus-visible {
   font-size: 12px;
   font-weight: 500;
   line-height: 1;
-  gap: 8px;               /* 8px → 2px */
+  gap: 2px;               /* 8px → 2px */
 }
 
 .social-row img {
