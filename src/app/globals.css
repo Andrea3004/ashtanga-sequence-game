@@ -522,8 +522,8 @@ button:focus-visible {
 }
 
 .social-row img {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: block;
   transition: transform .2s;
 }
