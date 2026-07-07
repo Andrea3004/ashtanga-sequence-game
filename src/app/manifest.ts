@@ -14,9 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "ko",
     categories: ["education", "fitness", "games"],
     icons: [
-      icons: [
-  {
-    src: "/icons/icon-192.png",
+      {
+     src: "/icons/icon-192.png",
     sizes: "192x192",
     type: "image/png",
     purpose: "any maskable",
@@ -28,3 +27,5 @@ export default function manifest(): MetadataRoute.Manifest {
     purpose: "any maskable",
   },
 ],
+  };
+}
