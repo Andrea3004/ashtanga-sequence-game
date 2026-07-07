@@ -535,3 +535,58 @@ button:focus-visible {
 .social-row a:hover {
   color: white;
 }
+.notice-card {
+  max-width: 460px;
+  margin: 18px auto 14px;
+  padding: 16px 20px;
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: 0 0 18px rgba(255, 136, 0, 0.18);
+
+  text-align: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  animation: noticeGlow 2.2s ease-in-out infinite;
+}
+
+.notice-title {
+  color: #ffd166;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin-bottom: 7px;
+}
+
+.notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.notice-soon {
+  margin-top: 10px;
+  color: #ffb703;
+  font-size: 14px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+@keyframes noticeGlow {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(255, 136, 0, 0.14);
+    opacity: 0.9;
+  }
+
+  50% {
+    box-shadow: 0 0 28px rgba(255, 136, 0, 0.38);
+    opacity: 1;
+  }
+}

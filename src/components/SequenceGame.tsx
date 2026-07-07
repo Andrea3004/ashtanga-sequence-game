@@ -482,6 +482,17 @@ export default function SequenceGame() {
               {text.reverseGame}
             </button>
           </div>
+          <div className="notice-card">
+  <div className="notice-title">🔥 NEW UPDATE</div>
+
+  <div className="notice-list">
+    <span>Intermediate Sequence Game</span>
+    <span>Intermediate Reverse Game</span>
+    <span>Vinyasa Rhythm Game</span>
+  </div>
+
+  <div className="notice-soon">Coming Soon...</div>
+</div>
           <div className="social-row">
   <a href="https://cafe.naver.com/ashtangayoga" target="_blank" rel="noopener noreferrer" aria-label="Naver Cafe">
     <img src="/icons/naver-cafe.png" alt="Naver Cafe" />
