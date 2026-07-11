@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   asanaEnglishNames,
   FALLBACK_CHOICES,
+  fullReverseLevels,
+  intermediateLevels,
   primaryFullEnglishSequence,
   primaryLevels,
   reverseLevels,
@@ -11,8 +15,10 @@ import {
   type LevelConfig,
 } from "@/data/primarySequence";
 
-type Mode = "home" | "level-select" | "reverse-level-select" | "primary" | "reverse" | "english" | "result";
-type GameMode = "primary" | "reverse" | "english";
+type LevelSelectMode = "level-select" | "reverse-level-select" | "intermediate-level-select" | "full-reverse-level-select";
+type SequenceMode = "primary" | "reverse" | "intermediate" | "full-reverse";
+type Mode = "home" | LevelSelectMode | SequenceMode | "english" | "result";
+type GameMode = SequenceMode | "english";
 type Feedback = "correct" | "wrong" | "timeout" | null;
 type Locale = "ko" | "en";
 
@@ -25,6 +31,7 @@ type EnglishRound = {
 const STARTING_LIVES = 3;
 const ENGLISH_TIME_LIMIT = 12;
 const LOCALE_STORAGE_KEY = "ashtanga-sequence-game-locale";
+const EMPTY_SEQUENCE: string[] = [];
 
 const translations = {
   ko: {
@@ -34,6 +41,10 @@ const translations = {
     primaryGame: "프라이머리 시퀀스 게임",
     sanskritGame: "산스크리트 이름 게임",
     reverseGame: "리버스 시퀀스 게임",
+    intermediateGame: "인터미디어트 시퀀스 게임",
+    fullReverseGame: "풀 리버스 게임",
+    intermediateDescription: "인터미디어트 시리즈의 순서를 반복하며 익혀보세요.",
+    fullReverseDescription: "전체 시퀀스를 마지막 자세부터 역순으로 익혀보세요.",
     selectLevel: "레벨 선택",
     home: "홈",
     restart: "다시 시작",
@@ -59,6 +70,10 @@ const translations = {
     primaryGame: "Primary Sequence Game",
     sanskritGame: "Sanskrit Name Game",
     reverseGame: "Reverse Sequence Game",
+    intermediateGame: "Intermediate Sequence Game",
+    fullReverseGame: "Full Reverse Game",
+    intermediateDescription: "Practice and memorize the Intermediate Series sequence.",
+    fullReverseDescription: "Practice the full sequence in reverse order, starting from the final posture.",
     selectLevel: "Select Level",
     home: "Home",
     restart: "Restart",
@@ -95,6 +110,16 @@ const englishReverseLevelTitles = [
   "LEVEL 3 · Standing Sequence",
 ] as const;
 
+const englishIntermediateLevelTitles = [
+  "LEVEL 1 · Opening Purification",
+  "LEVEL 2 · Backbends",
+  "LEVEL 3 · Hip Opening",
+  "LEVEL 4 · Balance Focus",
+  "LEVEL 5 · Headstands",
+] as const;
+
+const englishFullReverseLevelTitles = ["LEVEL 1 · Full Reverse Sequence"] as const;
+
 function shuffleArray<T>(array: T[]) {
   return [...array].sort(() => Math.random() - 0.5);
 }
@@ -128,9 +153,10 @@ function makeEnglishRounds() {
     }));
 }
 
-export default function SequenceGame() {
+export default function SequenceGame({ initialMode = "home" }: { initialMode?: Extract<Mode, "home" | LevelSelectMode> }) {
+  const router = useRouter();
   const [locale, setLocale] = useState<Locale>("ko");
-  const [mode, setMode] = useState<Mode>("home");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [gameMode, setGameMode] = useState<GameMode>("primary");
   const [selectedLevel, setSelectedLevel] = useState<LevelConfig | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -145,20 +171,44 @@ export default function SequenceGame() {
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
   const wrongSoundRef = useRef<HTMLAudioElement | null>(null);
 
-  const sequence = selectedLevel?.sequence ?? [];
+  const sequence = selectedLevel?.sequence ?? EMPTY_SEQUENCE;
   const currentAsana = sequence[currentIndex];
   const nextAsana = sequence[currentIndex + 1];
   const englishRound = englishRounds[currentIndex];
-  const isSequenceMode = mode === "primary" || mode === "reverse";
+  const isSequenceMode = mode === "primary" || mode === "reverse" || mode === "intermediate" || mode === "full-reverse";
   const isPlaying = isSequenceMode || mode === "english";
   const hasNextPrompt = isSequenceMode ? Boolean(nextAsana) : Boolean(englishRound);
   const text = translations[locale];
 
-  function getLevelTitle(level: LevelConfig, levelMode: "primary" | "reverse") {
+  function getLevelTitle(level: LevelConfig, levelMode: SequenceMode) {
     if (locale === "ko") return level.title;
 
-    const titles = levelMode === "reverse" ? englishReverseLevelTitles : englishPrimaryLevelTitles;
+    const titles =
+      levelMode === "reverse"
+        ? englishReverseLevelTitles
+        : levelMode === "intermediate"
+          ? englishIntermediateLevelTitles
+          : levelMode === "full-reverse"
+            ? englishFullReverseLevelTitles
+            : englishPrimaryLevelTitles;
     return titles[level.id - 1] ?? level.title;
+  }
+
+  function getSeriesLabel(levelMode: SequenceMode) {
+    if (levelMode === "intermediate" || levelMode === "full-reverse") return "Intermediate Series";
+    return "Primary Series";
+  }
+
+  function getLevelSelectMode(levelMode: SequenceMode): LevelSelectMode {
+    if (levelMode === "reverse") return "reverse-level-select";
+    if (levelMode === "intermediate") return "intermediate-level-select";
+    if (levelMode === "full-reverse") return "full-reverse-level-select";
+    return "level-select";
+  }
+
+  function goToRoute(path: string, nextMode: Extract<Mode, "home" | LevelSelectMode>) {
+    setMode(nextMode);
+    router.push(path);
   }
 
   function changeLocale(nextLocale: Locale) {
@@ -173,6 +223,21 @@ export default function SequenceGame() {
   function getAsanaDisplayName(asana: string) {
     return locale === "en" ? asanaEnglishNames[asana] ?? asana : asana;
   }
+
+  const clearFeedbackSoon = useCallback(() => {
+    window.setTimeout(() => setFeedback(null), 700);
+  }, []);
+
+  const handleTimeout = useCallback(() => {
+    setFeedback("timeout");
+    setLives((prev) => prev - 1);
+    setCombo(0);
+    if (mode === "english") {
+      setCurrentIndex((prev) => prev + 1);
+    }
+    setTimeLeft(isSequenceMode ? selectedLevel?.timeLimit ?? 0 : ENGLISH_TIME_LIMIT);
+    clearFeedbackSoon();
+  }, [clearFeedbackSoon, isSequenceMode, mode, selectedLevel?.timeLimit]);
 
   useEffect(() => {
     const savedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
@@ -224,7 +289,7 @@ export default function SequenceGame() {
     }, 1000);
 
     return () => window.clearTimeout(timer);
-  }, [feedback, hasNextPrompt, isPlaying, timeLeft]);
+  }, [feedback, handleTimeout, hasNextPrompt, isPlaying, timeLeft]);
 
   function playSound(soundRef: React.RefObject<HTMLAudioElement | null>) {
     const sound = soundRef.current;
@@ -252,6 +317,7 @@ export default function SequenceGame() {
     setSelectedLevel(null);
     setEnglishRounds([]);
     resetRunState(0);
+    router.push("/");
   }
 
   function startPrimary(level: LevelConfig) {
@@ -270,27 +336,28 @@ export default function SequenceGame() {
     setMode("reverse");
   }
 
+  function startIntermediate(level: LevelConfig) {
+    setGameMode("intermediate");
+    setSelectedLevel(level);
+    setEnglishRounds([]);
+    resetRunState(level.timeLimit);
+    setMode("intermediate");
+  }
+
+  function startFullReverse(level: LevelConfig) {
+    setGameMode("full-reverse");
+    setSelectedLevel(level);
+    setEnglishRounds([]);
+    resetRunState(level.timeLimit);
+    setMode("full-reverse");
+  }
+
   function startEnglish() {
     setGameMode("english");
     setSelectedLevel(null);
     setEnglishRounds(makeEnglishRounds());
     resetRunState(ENGLISH_TIME_LIMIT);
     setMode("english");
-  }
-
-  function clearFeedbackSoon() {
-    window.setTimeout(() => setFeedback(null), 700);
-  }
-
-  function handleTimeout() {
-    setFeedback("timeout");
-    setLives((prev) => prev - 1);
-    setCombo(0);
-    if (mode === "english") {
-      setCurrentIndex((prev) => prev + 1);
-    }
-    setTimeLeft(isSequenceMode ? selectedLevel?.timeLimit ?? 0 : ENGLISH_TIME_LIMIT);
-    clearFeedbackSoon();
   }
 
   function handleSequenceChoice(choice: string) {
@@ -347,13 +414,17 @@ export default function SequenceGame() {
     if (selectedLevel) {
       if (gameMode === "reverse") {
         startReverse(selectedLevel);
+      } else if (gameMode === "intermediate") {
+        startIntermediate(selectedLevel);
+      } else if (gameMode === "full-reverse") {
+        startFullReverse(selectedLevel);
       } else {
         startPrimary(selectedLevel);
       }
       return;
     }
 
-    setMode(gameMode === "reverse" ? "reverse-level-select" : "level-select");
+    setMode(getLevelSelectMode(gameMode));
   }
 
   if (lives <= 0 && isPlaying) {
@@ -385,7 +456,7 @@ export default function SequenceGame() {
         <section className="screen">
           <div className="panel center-panel">
             <p className="eyebrow">{text.levelClear}</p>
-            <h1 className="brand">{getLevelTitle(selectedLevel, mode === "reverse" ? "reverse" : "primary")}</h1>
+            <h1 className="brand">{getLevelTitle(selectedLevel, mode as SequenceMode)}</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
@@ -393,7 +464,7 @@ export default function SequenceGame() {
             <button
               className="button primary"
               type="button"
-              onClick={() => setMode(mode === "reverse" ? "reverse-level-select" : "level-select")}
+              onClick={() => setMode(getLevelSelectMode(mode as SequenceMode))}
             >
               {text.selectLevel}
             </button>
@@ -441,15 +512,22 @@ export default function SequenceGame() {
         <div>
           <p className="eyebrow">{text.primaryOnly}</p>
           <h1 className="brand">
-            {mode === "level-select" || mode === "reverse-level-select"
+            {mode === "level-select" ||
+            mode === "reverse-level-select" ||
+            mode === "intermediate-level-select" ||
+            mode === "full-reverse-level-select"
               ? text.selectLevel
               : mode === "primary"
                 ? selectedLevel && getLevelTitle(selectedLevel, "primary")
                 : mode === "reverse"
                   ? selectedLevel && getLevelTitle(selectedLevel, "reverse")
-                : mode === "english"
-                  ? text.sanskritGame
-                  : text.appTitle}
+                  : mode === "intermediate"
+                    ? selectedLevel && getLevelTitle(selectedLevel, "intermediate")
+                    : mode === "full-reverse"
+                      ? selectedLevel && getLevelTitle(selectedLevel, "full-reverse")
+                      : mode === "english"
+                        ? text.sanskritGame
+                        : text.appTitle}
           </h1>
         </div>
         <div className="top-actions">
@@ -466,7 +544,6 @@ export default function SequenceGame() {
         <section className="screen">
           <div>
             <p className="eyebrow">{text.instantStart}</p>
-            <h2 className="brand">{text.appTitle}</h2>
             <p className="small-copy">{text.description}</p>
           </div>
           <div className="stack">
@@ -481,26 +558,29 @@ export default function SequenceGame() {
             <button className="button reverse" type="button" onClick={() => setMode("reverse-level-select")}>
               {text.reverseGame}
             </button>
+            <button
+              className="button intermediate"
+              type="button"
+              onClick={() => goToRoute("/intermediate", "intermediate-level-select")}
+            >
+              {text.intermediateGame}
+            </button>
+            <button
+              className="button full-reverse"
+              type="button"
+              onClick={() => goToRoute("/full-reverse", "full-reverse-level-select")}
+            >
+              {text.fullReverseGame}
+            </button>
           </div>
-          <div className="notice-card">
-  <div className="notice-title">🔥 NEW UPDATE</div>
-
-  <div className="notice-list">
-    <span>Intermediate Sequence Game</span>
-    <span>Intermediate Reverse Game</span>
-    <span>Vinyasa Rhythm Game</span>
-  </div>
-
-  <div className="notice-soon">Coming Soon...</div>
-</div>
           <div className="social-row">
   <a href="https://cafe.naver.com/ashtangayoga" target="_blank" rel="noopener noreferrer" aria-label="Naver Cafe">
-    <img src="/icons/naver-cafe.png" alt="Naver Cafe" />
+    <Image src="/icons/naver-cafe.png" alt="Naver Cafe" width={32} height={32} />
       <span>Community</span>
   </a>
 
   <a href="https://www.instagram.com/ashtangayoga_korea" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-    <img src="/icons/Instagram.png" alt="Instagram" />
+    <Image src="/icons/Instagram.png" alt="Instagram" width={32} height={32} />
      <span>Instagram</span>
   </a>
 </div>
@@ -529,6 +609,28 @@ export default function SequenceGame() {
         </section>
       ) : null}
 
+      {mode === "intermediate-level-select" ? (
+        <section className="stack level-list">
+          <p className="small-copy">{text.intermediateDescription}</p>
+          {intermediateLevels.map((level) => (
+            <button className="button level-button" key={level.id} type="button" onClick={() => startIntermediate(level)}>
+              <span className="level-title">{getLevelTitle(level, "intermediate")}</span>
+            </button>
+          ))}
+        </section>
+      ) : null}
+
+      {mode === "full-reverse-level-select" ? (
+        <section className="stack level-list">
+          <p className="small-copy">{text.fullReverseDescription}</p>
+          {fullReverseLevels.map((level) => (
+            <button className="button level-button" key={level.id} type="button" onClick={() => startFullReverse(level)}>
+              <span className="level-title">{getLevelTitle(level, "full-reverse")}</span>
+            </button>
+          ))}
+        </section>
+      ) : null}
+
       {isSequenceMode && selectedLevel && nextAsana ? (
         <GameBoard
           choices={choices}
@@ -537,12 +639,13 @@ export default function SequenceGame() {
           currentLabel="CURRENT ASANA"
           currentPrompt={getAsanaDisplayName(currentAsana)}
           lives={lives}
-          nextLabel={mode === "reverse" ? "PREVIOUS ASANA?" : "NEXT ASANA?"}
+          nextLabel={mode === "reverse" || mode === "full-reverse" ? "PREVIOUS ASANA?" : "NEXT ASANA?"}
           onChoice={handleSequenceChoice}
           score={score}
+          seriesLabel={getSeriesLabel(mode as SequenceMode)}
           statLabels={text}
           timeLeft={timeLeft}
-          title={getLevelTitle(selectedLevel, mode === "reverse" ? "reverse" : "primary")}
+          title={getLevelTitle(selectedLevel, mode as SequenceMode)}
         />
       ) : null}
 
@@ -557,6 +660,7 @@ export default function SequenceGame() {
           nextLabel="NEXT ASANA?"
           onChoice={handleEnglishChoice}
           score={score}
+          seriesLabel="Primary Series"
           statLabels={text}
           timeLeft={timeLeft}
           title={text.sanskritInstruction}
@@ -576,6 +680,7 @@ function GameBoard({
   nextLabel,
   onChoice,
   score,
+  seriesLabel,
   statLabels,
   timeLeft,
   title,
@@ -589,6 +694,7 @@ function GameBoard({
   nextLabel: string;
   onChoice: (choice: string) => void;
   score: number;
+  seriesLabel: string;
   statLabels: (typeof translations)[Locale];
   timeLeft: number;
   title: string;
@@ -597,7 +703,7 @@ function GameBoard({
     <section className="game-card">
       <div className="game-header">
         <div>
-          <p className="eyebrow">Primary Series</p>
+          <p className="eyebrow">{seriesLabel}</p>
           <h2>{title}</h2>
         </div>
       </div>

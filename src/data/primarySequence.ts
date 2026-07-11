@@ -79,6 +79,42 @@ export const asanaEnglishNames: Record<string, string> = {
   파드마아사나: "Padmasana",
   욷트플루띠히: "Utpluthih",
   사바아사나: "Savasana",
+  Pasasana: "Pasasana",
+  Krounchasana: "Krounchasana",
+  "Salabhasana A": "Salabhasana A",
+  "Salabhasana B": "Salabhasana B",
+  Bhekasana: "Bhekasana",
+  Dhanurasana: "Dhanurasana",
+  "Parsva Dhanurasana": "Parsva Dhanurasana",
+  Ustrasana: "Ustrasana",
+  Laghuvajrasana: "Laghuvajrasana",
+  Kapotasana: "Kapotasana",
+  "Supta Vajrasana": "Supta Vajrasana",
+  "Bakasana A": "Bakasana A",
+  "Bakasana B": "Bakasana B",
+  Bharadvajasana: "Bharadvajasana",
+  "Ardha Matsyendrasana": "Ardha Matsyendrasana",
+  "Eka Pada Sirsasana": "Eka Pada Sirsasana",
+  "Dwi Pada Sirsasana": "Dwi Pada Sirsasana",
+  Yoganidrasana: "Yoganidrasana",
+  "Tittibhasana A": "Tittibhasana A",
+  "Tittibhasana B": "Tittibhasana B",
+  "Tittibhasana C": "Tittibhasana C",
+  "Pincha Mayurasana": "Pincha Mayurasana",
+  Karandavasana: "Karandavasana",
+  Mayurasana: "Mayurasana",
+  Nakrasana: "Nakrasana",
+  Vatayanasana: "Vatayanasana",
+  Parighasana: "Parighasana",
+  Gomukhasana: "Gomukhasana",
+  "Supta Urdhva Pada Vajrasana": "Supta Urdhva Pada Vajrasana",
+  "Mukta Hasta Sirsasana A": "Mukta Hasta Sirsasana A",
+  "Mukta Hasta Sirsasana B": "Mukta Hasta Sirsasana B",
+  "Mukta Hasta Sirsasana C": "Mukta Hasta Sirsasana C",
+  "Baddha Hasta Sirsasana A": "Baddha Hasta Sirsasana A",
+  "Baddha Hasta Sirsasana B": "Baddha Hasta Sirsasana B",
+  "Baddha Hasta Sirsasana C": "Baddha Hasta Sirsasana C",
+  "Baddha Hasta Sirsasana D": "Baddha Hasta Sirsasana D",
 };
 
 const suryaASequence = [
@@ -195,6 +231,65 @@ const finishingSequence = [
   "사바아사나",
 ];
 
+const intermediateLevel1Sequence = [
+  "Pasasana",
+  "Krounchasana",
+  "Salabhasana A",
+  "Salabhasana B",
+  "Bhekasana",
+  "Dhanurasana",
+  "Parsva Dhanurasana",
+];
+
+const intermediateLevel2Sequence = [
+  "Ustrasana",
+  "Laghuvajrasana",
+  "Kapotasana",
+  "Supta Vajrasana",
+  "Bakasana A",
+  "Bakasana B",
+  "Bharadvajasana",
+  "Ardha Matsyendrasana",
+];
+
+const intermediateLevel3Sequence = [
+  "Eka Pada Sirsasana",
+  "Dwi Pada Sirsasana",
+  "Yoganidrasana",
+  "Tittibhasana A",
+  "Tittibhasana B",
+  "Tittibhasana C",
+];
+
+const intermediateLevel4Sequence = [
+  "Pincha Mayurasana",
+  "Karandavasana",
+  "Mayurasana",
+  "Nakrasana",
+  "Vatayanasana",
+  "Parighasana",
+  "Gomukhasana",
+  "Supta Urdhva Pada Vajrasana",
+];
+
+const intermediateLevel5Sequence = [
+  "Mukta Hasta Sirsasana A",
+  "Mukta Hasta Sirsasana B",
+  "Mukta Hasta Sirsasana C",
+  "Baddha Hasta Sirsasana A",
+  "Baddha Hasta Sirsasana B",
+  "Baddha Hasta Sirsasana C",
+  "Baddha Hasta Sirsasana D",
+];
+
+export const intermediateFullSequence = [
+  ...intermediateLevel1Sequence,
+  ...intermediateLevel2Sequence,
+  ...intermediateLevel3Sequence,
+  ...intermediateLevel4Sequence,
+  ...intermediateLevel5Sequence,
+];
+
 export const primaryLevels: LevelConfig[] = [
   { id: 1, title: "LEVEL 1 · 수리야 A", sequence: suryaASequence, timeLimit: 8 },
   { id: 2, title: "LEVEL 2 · 수리야 B", sequence: suryaBSequence, timeLimit: 8 },
@@ -225,6 +320,23 @@ export const reverseLevels: LevelConfig[] = [
     title: "LEVEL 3 · 스탠딩 시퀀스",
     sequence: [...standingSequence].reverse(),
     timeLimit: 12,
+  },
+];
+
+export const intermediateLevels: LevelConfig[] = [
+  { id: 1, title: "LEVEL 1 · 초기 정화", sequence: intermediateLevel1Sequence, timeLimit: 12 },
+  { id: 2, title: "LEVEL 2 · 후굴", sequence: intermediateLevel2Sequence, timeLimit: 12 },
+  { id: 3, title: "LEVEL 3 · 힙 오프닝", sequence: intermediateLevel3Sequence, timeLimit: 12 },
+  { id: 4, title: "LEVEL 4 · 집중 밸런스", sequence: intermediateLevel4Sequence, timeLimit: 12 },
+  { id: 5, title: "LEVEL 5 · 헤드스탠드", sequence: intermediateLevel5Sequence, timeLimit: 12 },
+];
+
+export const fullReverseLevels: LevelConfig[] = [
+  {
+    id: 1,
+    title: "LEVEL 1 · 풀 리버스 시퀀스",
+    sequence: [...intermediateFullSequence].reverse(),
+    timeLimit: 10,
   },
 ];
 

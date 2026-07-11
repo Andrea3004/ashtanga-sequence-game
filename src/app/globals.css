@@ -175,6 +175,16 @@ button:focus-visible {
   color: #ffffff;
 }
 
+.button.intermediate {
+  background: #2563eb;
+  color: #eff6ff;
+}
+
+.button.full-reverse {
+  background: #0f766e;
+  color: #ecfeff;
+}
+
 .button.ghost {
   min-height: 44px;
   border: 1px solid rgba(255, 247, 237, 0.18);

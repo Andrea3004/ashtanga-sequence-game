@@ -36,6 +36,16 @@ export const publicPages = [
     changeFrequency: "weekly",
     priority: 1,
   },
+  {
+    path: "/intermediate",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
+  {
+    path: "/full-reverse",
+    changeFrequency: "weekly",
+    priority: 0.8,
+  },
 ] as const;
 
 export function absoluteUrl(path = "/") {
