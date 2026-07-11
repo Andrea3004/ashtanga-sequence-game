@@ -651,6 +651,137 @@ button:focus-visible {
   line-height: 1.35;
 }
 
+.record-public-success,
+.record-public-note {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.record-public-success {
+  color: #bbf7d0;
+}
+
+.record-public-note {
+  color: #fed7aa;
+}
+
+.ranking-shell {
+  width: min(100%, 760px);
+}
+
+.ranking-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(255, 247, 237, 0.12);
+  border-radius: 8px;
+  background: rgba(15, 15, 26, 0.82);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+  padding: 18px;
+}
+
+.ranking-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ranking-tabs button {
+  min-height: 44px;
+  border: 1px solid rgba(255, 247, 237, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.06);
+  color: #fff7ed;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 10px;
+}
+
+.ranking-tabs button.active {
+  border-color: rgba(251, 191, 36, 0.58);
+  background: rgba(251, 191, 36, 0.16);
+  color: #fef3c7;
+}
+
+.ranking-refresh {
+  width: auto;
+  justify-self: start;
+  min-height: 40px;
+  padding: 10px 14px;
+}
+
+.ranking-state {
+  margin: 0;
+  border: 1px solid rgba(255, 247, 237, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.05);
+  color: #cbd5e1;
+  padding: 14px;
+}
+
+.ranking-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ranking-item {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid rgba(255, 247, 237, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.05);
+  padding: 12px;
+}
+
+.ranking-item.rank-1,
+.ranking-item.rank-2,
+.ranking-item.rank-3 {
+  border-color: rgba(251, 191, 36, 0.32);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.ranking-rank {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.08);
+  min-height: 58px;
+}
+
+.ranking-rank span {
+  color: #fed7aa;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ranking-rank strong {
+  color: #fff7ed;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ranking-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ranking-main strong {
+  color: #fff7ed;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.ranking-main span,
+.ranking-main time {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
 @media (min-width: 720px) {
   .app-shell {
     padding-top: 44px;
@@ -667,6 +798,10 @@ button:focus-visible {
 
   .current-panel h3 {
     font-size: 38px;
+  }
+
+  .ranking-tabs {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 .social-row {

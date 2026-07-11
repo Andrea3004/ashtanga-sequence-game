@@ -26,6 +26,7 @@ import {
   type GameRecord,
   type GameRecordId,
 } from "@/lib/gameRecords";
+import { isPublicRankingConfigured, savePublicGameScore } from "@/lib/gameScores";
 
 type LevelSelectMode = "level-select" | "reverse-level-select" | "intermediate-level-select" | "full-reverse-level-select";
 type SequenceMode = "primary" | "reverse" | "intermediate" | "full-reverse";
@@ -35,6 +36,7 @@ type Feedback = "correct" | "wrong" | "timeout" | null;
 type Locale = "ko" | "en";
 type SeriesCategory = "primary" | "intermediate";
 type SaveStep = "ask" | "form" | "saved" | "skipped";
+type PublicSaveStatus = "idle" | "saving" | "saved" | "failed" | "unconfigured" | "invalid";
 
 type EnglishRound = {
   prompt: string;
@@ -57,6 +59,8 @@ const translations = {
     reverseGame: "리버스 시퀀스 게임",
     intermediateGame: "인터미디어트 시퀀스 게임",
     fullReverseGame: "풀 리버스 게임",
+    publicRanking: "전체 랭킹",
+    viewPublicRanking: "전체 랭킹 보기",
     intermediateDescription: "인터미디어트 시리즈의 순서를 반복하며 익혀보세요.",
     fullReverseDescription: "전체 시퀀스를 마지막 자세부터 역순으로 익혀보세요.",
     selectLevel: "레벨 선택",
@@ -91,6 +95,10 @@ const translations = {
     nicknameUnsupported: "사용할 수 없는 문자가 포함되어 있습니다.",
     saveFailed: "기록을 저장하지 못했습니다. 다시 시도해 주세요.",
     resultSaved: "기록이 저장되었습니다.",
+    publicSaveSaving: "공개 랭킹 저장 중",
+    publicSaveSuccess: "개인 기록과 전체 랭킹에 저장되었습니다.",
+    publicSaveFailed: "개인 기록은 저장됐지만 전체 랭킹 등록에 실패했습니다.",
+    publicSaveUnconfigured: "공개 랭킹 기능이 설정되지 않았습니다.",
     personalBest: "개인 최고 기록",
     newPersonalBest: "새로운 최고 기록!",
     recentResults: "최근 기록",
@@ -111,6 +119,8 @@ const translations = {
     reverseGame: "Reverse Sequence Game",
     intermediateGame: "Intermediate Sequence Game",
     fullReverseGame: "Full Reverse Game",
+    publicRanking: "Public Ranking",
+    viewPublicRanking: "View ranking",
     intermediateDescription: "Practice and memorize the Intermediate Series sequence.",
     fullReverseDescription: "Practice the full sequence in reverse order, starting from the final posture.",
     selectLevel: "Select Level",
@@ -145,6 +155,10 @@ const translations = {
     nicknameUnsupported: "The nickname contains unsupported characters.",
     saveFailed: "Could not save the result. Please try again.",
     resultSaved: "Your result has been saved.",
+    publicSaveSaving: "Saving to public ranking",
+    publicSaveSuccess: "Saved to personal records and public ranking.",
+    publicSaveFailed: "Saved locally, but public ranking registration failed.",
+    publicSaveUnconfigured: "Public ranking is not configured.",
     personalBest: "Personal best",
     newPersonalBest: "New personal best!",
     recentResults: "Recent results",
@@ -257,6 +271,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   const [saveError, setSaveError] = useState("");
   const [savedRecord, setSavedRecord] = useState<GameRecord | null>(null);
   const [savedRecordIsBest, setSavedRecordIsBest] = useState(false);
+  const [publicSaveStatus, setPublicSaveStatus] = useState<PublicSaveStatus>("idle");
+  const [hasSubmittedPublicScore, setHasSubmittedPublicScore] = useState(false);
   const [, setRecordsVersion] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -424,6 +440,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setSaveError("");
     setSavedRecord(null);
     setSavedRecordIsBest(false);
+    setPublicSaveStatus("idle");
+    setHasSubmittedPublicScore(false);
     setShowDeleteConfirm(false);
   }
 
@@ -607,8 +625,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setSaveStep("form");
   }
 
-  function handleSaveRecord() {
-    if (savedRecord) return;
+  async function handleSaveRecord() {
+    if (savedRecord || publicSaveStatus === "saving") return;
 
     const cleanedNickname = cleanNickname(nicknameValue);
     const validationError = validateNickname(cleanedNickname);
@@ -633,6 +651,24 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setRecordsVersion((prev) => prev + 1);
     setNicknameError("");
     setSaveError("");
+
+    if (hasSubmittedPublicScore) return;
+
+    if (!isPublicRankingConfigured()) {
+      setPublicSaveStatus("unconfigured");
+      return;
+    }
+
+    setPublicSaveStatus("saving");
+    setHasSubmittedPublicScore(true);
+    const publicResult = await savePublicGameScore(record);
+
+    if (publicResult.ok) {
+      setPublicSaveStatus("saved");
+      return;
+    }
+
+    setPublicSaveStatus(publicResult.reason === "unconfigured" ? "unconfigured" : publicResult.reason === "invalid" ? "invalid" : "failed");
   }
 
   function handleClearCurrentGameRecords() {
@@ -671,6 +707,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             onSave={handleSaveRecord}
             onShowForm={showNicknameForm}
             onSkip={() => setSaveStep("skipped")}
+            onViewRanking={() => router.push(`/ranking?game=${GAME_RECORD_IDS[gameMode]}`)}
+            publicSaveStatus={publicSaveStatus}
             record={getResultRecordSummary()}
             recentRecords={getRecentRecords(GAME_RECORD_IDS[gameMode], 5)}
             saveError={saveError}
@@ -715,6 +753,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             onSave={handleSaveRecord}
             onShowForm={showNicknameForm}
             onSkip={() => setSaveStep("skipped")}
+            onViewRanking={() => router.push(`/ranking?game=${GAME_RECORD_IDS[gameMode]}`)}
+            publicSaveStatus={publicSaveStatus}
             record={getResultRecordSummary()}
             recentRecords={getRecentRecords(GAME_RECORD_IDS[gameMode], 5)}
             saveError={saveError}
@@ -763,6 +803,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             onSave={handleSaveRecord}
             onShowForm={showNicknameForm}
             onSkip={() => setSaveStep("skipped")}
+            onViewRanking={() => router.push(`/ranking?game=${GAME_RECORD_IDS[gameMode]}`)}
+            publicSaveStatus={publicSaveStatus}
             record={getResultRecordSummary()}
             recentRecords={getRecentRecords(GAME_RECORD_IDS[gameMode], 5)}
             saveError={saveError}
@@ -858,6 +900,9 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
               onClick={() => goToRoute("/full-reverse", "full-reverse-level-select")}
             >
               {text.fullReverseGame}
+            </button>
+            <button className="button ghost" type="button" onClick={() => router.push("/ranking")}>
+              {text.publicRanking}
             </button>
           </div>
           <div className="social-row">
@@ -996,6 +1041,8 @@ function RecordPanel({
   onSave,
   onShowForm,
   onSkip,
+  onViewRanking,
+  publicSaveStatus,
   recentRecords,
   record,
   saveError,
@@ -1016,6 +1063,8 @@ function RecordPanel({
   onSave: () => void;
   onShowForm: () => void;
   onSkip: () => void;
+  onViewRanking: () => void;
+  publicSaveStatus: PublicSaveStatus;
   recentRecords: GameRecord[];
   record: GameRecord;
   saveError: string;
@@ -1085,7 +1134,7 @@ function RecordPanel({
           ) : null}
           {saveError ? <p className="record-error">{saveError}</p> : null}
           <div className="record-actions">
-            <button className="button primary record-button" type="button" onClick={onSave} disabled={Boolean(savedRecord)}>
+            <button className="button primary record-button" type="button" onClick={onSave} disabled={Boolean(savedRecord) || publicSaveStatus === "saving"}>
               {text.saveScore}
             </button>
             <button className="button ghost record-button" type="button" onClick={onCancelForm}>
@@ -1099,6 +1148,10 @@ function RecordPanel({
         <div className="record-save-box">
           <p>{text.resultSaved}</p>
           {savedRecordIsBest ? <strong className="record-best-badge">{text.newPersonalBest}</strong> : null}
+          <PublicSaveMessage status={publicSaveStatus} text={text} />
+          <button className="button ghost record-button" type="button" onClick={onViewRanking}>
+            {text.viewPublicRanking}
+          </button>
         </div>
       ) : null}
 
@@ -1163,6 +1216,27 @@ function RecordListItem({
       <time dateTime={record.completedAt}>{formatDate(record.completedAt, locale)}</time>
     </article>
   );
+}
+
+function PublicSaveMessage({
+  status,
+  text,
+}: {
+  status: PublicSaveStatus;
+  text: (typeof translations)[Locale];
+}) {
+  if (status === "idle") return null;
+
+  const message =
+    status === "saving"
+      ? text.publicSaveSaving
+      : status === "saved"
+        ? text.publicSaveSuccess
+        : status === "unconfigured"
+          ? text.publicSaveUnconfigured
+          : text.publicSaveFailed;
+
+  return <p className={status === "saved" ? "record-public-success" : "record-public-note"}>{message}</p>;
 }
 
 function GameBoard({

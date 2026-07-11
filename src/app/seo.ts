@@ -46,6 +46,11 @@ export const publicPages = [
     changeFrequency: "weekly",
     priority: 0.8,
   },
+  {
+    path: "/ranking",
+    changeFrequency: "daily",
+    priority: 0.7,
+  },
 ] as const;
 
 export function absoluteUrl(path = "/") {
