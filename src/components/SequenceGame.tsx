@@ -21,6 +21,7 @@ type Mode = "home" | LevelSelectMode | SequenceMode | "english" | "result";
 type GameMode = SequenceMode | "english";
 type Feedback = "correct" | "wrong" | "timeout" | null;
 type Locale = "ko" | "en";
+type SeriesCategory = "primary" | "intermediate";
 
 type EnglishRound = {
   prompt: string;
@@ -60,7 +61,10 @@ const translations = {
     life: "라이프",
     time: "시간",
     remainingLives: "남은 라이프",
-    primaryOnly: "프라이머리 전용",
+    categoryLabels: {
+      primary: "프라이머리 전용",
+      intermediate: "인터미디어트 전용",
+    },
     sanskritInstruction: "한글 음역을 고르세요",
   },
   en: {
@@ -89,10 +93,21 @@ const translations = {
     life: "Life",
     time: "Time",
     remainingLives: "Lives remaining",
-    primaryOnly: "Primary only",
+    categoryLabels: {
+      primary: "Primary Only",
+      intermediate: "Intermediate Only",
+    },
     sanskritInstruction: "Choose the Korean transliteration.",
   },
 } as const;
+
+const GAME_SERIES: Record<GameMode, SeriesCategory> = {
+  primary: "primary",
+  reverse: "primary",
+  english: "primary",
+  intermediate: "intermediate",
+  "full-reverse": "intermediate",
+};
 
 const englishPrimaryLevelTitles = [
   "LEVEL 1 · Surya A",
@@ -194,9 +209,20 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     return titles[level.id - 1] ?? level.title;
   }
 
-  function getSeriesLabel(levelMode: SequenceMode) {
-    if (levelMode === "intermediate" || levelMode === "full-reverse") return "Intermediate Series";
-    return "Primary Series";
+  function getGameModeForView(viewMode: Mode): GameMode | null {
+    if (viewMode === "home" || viewMode === "result") return null;
+    if (viewMode === "level-select") return "primary";
+    if (viewMode === "reverse-level-select") return "reverse";
+    if (viewMode === "intermediate-level-select") return "intermediate";
+    if (viewMode === "full-reverse-level-select") return "full-reverse";
+    return viewMode;
+  }
+
+  function getCategoryLabel(viewMode: Mode) {
+    const currentGameMode = getGameModeForView(viewMode);
+    if (!currentGameMode) return null;
+
+    return text.categoryLabels[GAME_SERIES[currentGameMode]];
   }
 
   function getLevelSelectMode(levelMode: SequenceMode): LevelSelectMode {
@@ -290,6 +316,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
 
     return () => window.clearTimeout(timer);
   }, [feedback, handleTimeout, hasNextPrompt, isPlaying, timeLeft]);
+
+  const topCategoryLabel = getCategoryLabel(mode);
 
   function playSound(soundRef: React.RefObject<HTMLAudioElement | null>) {
     const sound = soundRef.current;
@@ -510,7 +538,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
 
       <div className="top-bar">
         <div>
-          <p className="eyebrow">{text.primaryOnly}</p>
+          {topCategoryLabel ? <p className="eyebrow">{topCategoryLabel}</p> : null}
           <h1 className="brand">
             {mode === "level-select" ||
             mode === "reverse-level-select" ||
@@ -642,7 +670,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
           nextLabel={mode === "reverse" || mode === "full-reverse" ? "PREVIOUS ASANA?" : "NEXT ASANA?"}
           onChoice={handleSequenceChoice}
           score={score}
-          seriesLabel={getSeriesLabel(mode as SequenceMode)}
+          seriesLabel={getCategoryLabel(mode) ?? ""}
           statLabels={text}
           timeLeft={timeLeft}
           title={getLevelTitle(selectedLevel, mode as SequenceMode)}
@@ -660,7 +688,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
           nextLabel="NEXT ASANA?"
           onChoice={handleEnglishChoice}
           score={score}
-          seriesLabel="Primary Series"
+          seriesLabel={getCategoryLabel(mode) ?? ""}
           statLabels={text}
           timeLeft={timeLeft}
           title={text.sanskritInstruction}
