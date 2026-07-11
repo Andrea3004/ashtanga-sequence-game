@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +14,18 @@ import {
   type EnglishQuizPose,
   type LevelConfig,
 } from "@/data/primarySequence";
+import {
+  clearGameRecords,
+  compareGameRecords,
+  createRecordId,
+  getBestRecord,
+  getRecentRecords,
+  getSavedNickname,
+  saveGameRecord,
+  saveNickname,
+  type GameRecord,
+  type GameRecordId,
+} from "@/lib/gameRecords";
 
 type LevelSelectMode = "level-select" | "reverse-level-select" | "intermediate-level-select" | "full-reverse-level-select";
 type SequenceMode = "primary" | "reverse" | "intermediate" | "full-reverse";
@@ -22,6 +34,7 @@ type GameMode = SequenceMode | "english";
 type Feedback = "correct" | "wrong" | "timeout" | null;
 type Locale = "ko" | "en";
 type SeriesCategory = "primary" | "intermediate";
+type SaveStep = "ask" | "form" | "saved" | "skipped";
 
 type EnglishRound = {
   prompt: string;
@@ -66,6 +79,28 @@ const translations = {
       intermediate: "인터미디어트 전용",
     },
     sanskritInstruction: "한글 음역을 고르세요",
+    savePrompt: "이 기록을 저장할까요?",
+    saveResult: "기록 저장하기",
+    notNow: "이번에는 저장하지 않기",
+    nicknamePrompt: "기록에 표시할 별명을 입력하세요.",
+    nickname: "별명",
+    saveScore: "점수 저장하기",
+    cancel: "취소",
+    nicknameTooShort: "별명을 2자 이상 입력해 주세요.",
+    nicknameTooLong: "별명은 12자 이하로 입력해 주세요.",
+    nicknameUnsupported: "사용할 수 없는 문자가 포함되어 있습니다.",
+    saveFailed: "기록을 저장하지 못했습니다. 다시 시도해 주세요.",
+    resultSaved: "기록이 저장되었습니다.",
+    personalBest: "개인 최고 기록",
+    newPersonalBest: "새로운 최고 기록!",
+    recentResults: "최근 기록",
+    noRecords: "기록 없음",
+    deleteRecordsConfirm: "이 게임의 기록을 모두 삭제할까요?",
+    deleteRecords: "삭제",
+    accuracy: "정답률",
+    duration: "소요 시간",
+    completedAt: "완료 날짜",
+    points: "점",
   },
   en: {
     appTitle: "Ashtanga Sequence Game",
@@ -98,6 +133,28 @@ const translations = {
       intermediate: "Intermediate Only",
     },
     sanskritInstruction: "Choose the Korean transliteration.",
+    savePrompt: "Would you like to save this result?",
+    saveResult: "Save result",
+    notNow: "Not now",
+    nicknamePrompt: "Enter a nickname for this record.",
+    nickname: "Nickname",
+    saveScore: "Save score",
+    cancel: "Cancel",
+    nicknameTooShort: "Enter at least 2 characters.",
+    nicknameTooLong: "Nickname must be 12 characters or fewer.",
+    nicknameUnsupported: "The nickname contains unsupported characters.",
+    saveFailed: "Could not save the result. Please try again.",
+    resultSaved: "Your result has been saved.",
+    personalBest: "Personal best",
+    newPersonalBest: "New personal best!",
+    recentResults: "Recent results",
+    noRecords: "No records",
+    deleteRecordsConfirm: "Delete all records for this game?",
+    deleteRecords: "Delete",
+    accuracy: "Accuracy",
+    duration: "Time",
+    completedAt: "Completed",
+    points: "pts",
   },
 } as const;
 
@@ -107,6 +164,14 @@ const GAME_SERIES: Record<GameMode, SeriesCategory> = {
   english: "primary",
   intermediate: "intermediate",
   "full-reverse": "intermediate",
+};
+
+const GAME_RECORD_IDS: Record<GameMode, GameRecordId> = {
+  primary: "primary",
+  reverse: "reverse",
+  english: "sanskrit",
+  intermediate: "intermediate",
+  "full-reverse": "full-reverse",
 };
 
 const englishPrimaryLevelTitles = [
@@ -179,9 +244,21 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [lives, setLives] = useState(STARTING_LIVES);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [choices, setChoices] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [resultCompletedAt, setResultCompletedAt] = useState<number | null>(null);
+  const [saveStep, setSaveStep] = useState<SaveStep>("ask");
+  const [nicknameValue, setNicknameValue] = useState("");
+  const [nicknameError, setNicknameError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [savedRecord, setSavedRecord] = useState<GameRecord | null>(null);
+  const [savedRecordIsBest, setSavedRecordIsBest] = useState(false);
+  const [, setRecordsVersion] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
   const wrongSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -194,6 +271,10 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   const isPlaying = isSequenceMode || mode === "english";
   const hasNextPrompt = isSequenceMode ? Boolean(nextAsana) : Boolean(englishRound);
   const text = translations[locale];
+  const totalQuestions = isSequenceMode ? Math.max(sequence.length - 1, 0) : englishRounds.length;
+  const isGameOverResult = lives <= 0 && isPlaying;
+  const isSequenceCompleteResult = isSequenceMode && Boolean(selectedLevel) && !nextAsana;
+  const isEnglishCompleteResult = mode === "english" && englishRounds.length > 0 && currentIndex >= englishRounds.length;
 
   function getLevelTitle(level: LevelConfig, levelMode: SequenceMode) {
     if (locale === "ko") return level.title;
@@ -257,6 +338,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   const handleTimeout = useCallback(() => {
     setFeedback("timeout");
     setLives((prev) => prev - 1);
+    setMistakes((prev) => prev + 1);
     setCombo(0);
     if (mode === "english") {
       setCurrentIndex((prev) => prev + 1);
@@ -317,6 +399,12 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     return () => window.clearTimeout(timer);
   }, [feedback, handleTimeout, hasNextPrompt, isPlaying, timeLeft]);
 
+  useEffect(() => {
+    if ((isGameOverResult || isSequenceCompleteResult || isEnglishCompleteResult) && resultCompletedAt === null) {
+      setResultCompletedAt(Date.now());
+    }
+  }, [isEnglishCompleteResult, isGameOverResult, isSequenceCompleteResult, resultCompletedAt]);
+
   const topCategoryLabel = getCategoryLabel(mode);
 
   function playSound(soundRef: React.RefObject<HTMLAudioElement | null>) {
@@ -329,14 +417,28 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     sound.play().catch(() => {});
   }
 
-  function resetRunState(timeLimit: number) {
+  function resetRecordState() {
+    setResultCompletedAt(null);
+    setSaveStep("ask");
+    setNicknameError("");
+    setSaveError("");
+    setSavedRecord(null);
+    setSavedRecordIsBest(false);
+    setShowDeleteConfirm(false);
+  }
+
+  function resetRunState(timeLimit: number, startTimer = false) {
     setCurrentIndex(0);
     setScore(0);
     setCombo(0);
     setLives(STARTING_LIVES);
+    setCorrectAnswers(0);
+    setMistakes(0);
     setFeedback(null);
     setChoices([]);
     setTimeLeft(timeLimit);
+    setRunStartedAt(startTimer ? Date.now() : null);
+    resetRecordState();
   }
 
   function goHome() {
@@ -352,7 +454,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setGameMode("primary");
     setSelectedLevel(level);
     setEnglishRounds([]);
-    resetRunState(level.timeLimit);
+    resetRunState(level.timeLimit, true);
     setMode("primary");
   }
 
@@ -360,7 +462,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setGameMode("reverse");
     setSelectedLevel(level);
     setEnglishRounds([]);
-    resetRunState(level.timeLimit);
+    resetRunState(level.timeLimit, true);
     setMode("reverse");
   }
 
@@ -368,7 +470,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setGameMode("intermediate");
     setSelectedLevel(level);
     setEnglishRounds([]);
-    resetRunState(level.timeLimit);
+    resetRunState(level.timeLimit, true);
     setMode("intermediate");
   }
 
@@ -376,7 +478,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setGameMode("full-reverse");
     setSelectedLevel(level);
     setEnglishRounds([]);
-    resetRunState(level.timeLimit);
+    resetRunState(level.timeLimit, true);
     setMode("full-reverse");
   }
 
@@ -384,7 +486,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setGameMode("english");
     setSelectedLevel(null);
     setEnglishRounds(makeEnglishRounds());
-    resetRunState(ENGLISH_TIME_LIMIT);
+    resetRunState(ENGLISH_TIME_LIMIT, true);
     setMode("english");
   }
 
@@ -395,6 +497,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
       playSound(correctSoundRef);
       setFeedback("correct");
       setScore((prev) => prev + 100);
+      setCorrectAnswers((prev) => prev + 1);
       setCombo((prev) => prev + 1);
       setCurrentIndex((prev) => prev + 1);
       setTimeLeft(selectedLevel?.timeLimit ?? 0);
@@ -405,6 +508,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     playSound(wrongSoundRef);
     setFeedback("wrong");
     setCombo(0);
+    setMistakes((prev) => prev + 1);
     setLives((prev) => prev - 1);
     setTimeLeft(selectedLevel?.timeLimit ?? 0);
     clearFeedbackSoon();
@@ -417,6 +521,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
       playSound(correctSoundRef);
       setFeedback("correct");
       setScore((prev) => prev + 100);
+      setCorrectAnswers((prev) => prev + 1);
       setCombo((prev) => prev + 1);
       setCurrentIndex((prev) => prev + 1);
       setTimeLeft(ENGLISH_TIME_LIMIT);
@@ -427,6 +532,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     playSound(wrongSoundRef);
     setFeedback("wrong");
     setCombo(0);
+    setMistakes((prev) => prev + 1);
     setLives((prev) => prev - 1);
     setCurrentIndex((prev) => prev + 1);
     setTimeLeft(ENGLISH_TIME_LIMIT);
@@ -455,6 +561,96 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setMode(getLevelSelectMode(gameMode));
   }
 
+  function buildCurrentRecord(nickname: string): GameRecord {
+    const completedAtMs = resultCompletedAt ?? Date.now();
+    const durationMs = Math.max(completedAtMs - (runStartedAt ?? completedAtMs), 0);
+    const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    const levelTitle =
+      gameMode === "english"
+        ? text.sanskritGame
+        : selectedLevel
+          ? getLevelTitle(selectedLevel, gameMode)
+          : text.appTitle;
+
+    return {
+      id: createRecordId(),
+      gameId: GAME_RECORD_IDS[gameMode],
+      nickname,
+      score,
+      correctAnswers,
+      totalQuestions,
+      accuracy,
+      durationMs,
+      completedAt: new Date(completedAtMs).toISOString(),
+      level: levelTitle,
+      language: locale,
+      mistakes,
+    };
+  }
+
+  function cleanNickname(value: string) {
+    return value.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim();
+  }
+
+  function validateNickname(value: string) {
+    const cleaned = cleanNickname(value);
+    if (cleaned.length < 2) return text.nicknameTooShort;
+    if (cleaned.length > 12) return text.nicknameTooLong;
+    if (!/^[\p{L}\p{N} ._-]+$/u.test(cleaned)) return text.nicknameUnsupported;
+    return "";
+  }
+
+  function showNicknameForm() {
+    setNicknameValue(getSavedNickname());
+    setNicknameError("");
+    setSaveError("");
+    setSaveStep("form");
+  }
+
+  function handleSaveRecord() {
+    if (savedRecord) return;
+
+    const cleanedNickname = cleanNickname(nicknameValue);
+    const validationError = validateNickname(cleanedNickname);
+    if (validationError) {
+      setNicknameError(validationError);
+      return;
+    }
+
+    const previousBest = getBestRecord(GAME_RECORD_IDS[gameMode]);
+    const record = buildCurrentRecord(cleanedNickname);
+    const didSave = saveGameRecord(record);
+
+    if (!didSave) {
+      setSaveError(text.saveFailed);
+      return;
+    }
+
+    saveNickname(cleanedNickname);
+    setSavedRecord(record);
+    setSavedRecordIsBest(!previousBest || compareGameRecords(record, previousBest) < 0);
+    setSaveStep("saved");
+    setRecordsVersion((prev) => prev + 1);
+    setNicknameError("");
+    setSaveError("");
+  }
+
+  function handleClearCurrentGameRecords() {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    if (clearGameRecords(GAME_RECORD_IDS[gameMode])) {
+      setRecordsVersion((prev) => prev + 1);
+      setShowDeleteConfirm(false);
+    }
+  }
+
+  function getResultRecordSummary(): GameRecord {
+    return savedRecord ?? buildCurrentRecord("");
+  }
+
   if (lives <= 0 && isPlaying) {
     return (
       <main className="app-shell feedback-wrong">
@@ -465,6 +661,27 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
+          <RecordPanel
+            bestRecord={getBestRecord(GAME_RECORD_IDS[gameMode])}
+            locale={locale}
+            onCancelDelete={() => setShowDeleteConfirm(false)}
+            onCancelForm={() => setSaveStep("ask")}
+            onClearRecords={handleClearCurrentGameRecords}
+            onNicknameChange={setNicknameValue}
+            onSave={handleSaveRecord}
+            onShowForm={showNicknameForm}
+            onSkip={() => setSaveStep("skipped")}
+            record={getResultRecordSummary()}
+            recentRecords={getRecentRecords(GAME_RECORD_IDS[gameMode], 5)}
+            saveError={saveError}
+            savedRecord={savedRecord}
+            savedRecordIsBest={savedRecordIsBest}
+            saveStep={saveStep}
+            showDeleteConfirm={showDeleteConfirm}
+            text={text}
+            nicknameError={nicknameError}
+            nicknameValue={nicknameValue}
+          />
           <div className="stack">
             <button className="button primary" type="button" onClick={restart}>
               {text.restart}
@@ -488,6 +705,27 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
+          <RecordPanel
+            bestRecord={getBestRecord(GAME_RECORD_IDS[gameMode])}
+            locale={locale}
+            onCancelDelete={() => setShowDeleteConfirm(false)}
+            onCancelForm={() => setSaveStep("ask")}
+            onClearRecords={handleClearCurrentGameRecords}
+            onNicknameChange={setNicknameValue}
+            onSave={handleSaveRecord}
+            onShowForm={showNicknameForm}
+            onSkip={() => setSaveStep("skipped")}
+            record={getResultRecordSummary()}
+            recentRecords={getRecentRecords(GAME_RECORD_IDS[gameMode], 5)}
+            saveError={saveError}
+            savedRecord={savedRecord}
+            savedRecordIsBest={savedRecordIsBest}
+            saveStep={saveStep}
+            showDeleteConfirm={showDeleteConfirm}
+            text={text}
+            nicknameError={nicknameError}
+            nicknameValue={nicknameValue}
+          />
           <div className="stack">
             <button
               className="button primary"
@@ -515,6 +753,27 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
           </div>
+          <RecordPanel
+            bestRecord={getBestRecord(GAME_RECORD_IDS[gameMode])}
+            locale={locale}
+            onCancelDelete={() => setShowDeleteConfirm(false)}
+            onCancelForm={() => setSaveStep("ask")}
+            onClearRecords={handleClearCurrentGameRecords}
+            onNicknameChange={setNicknameValue}
+            onSave={handleSaveRecord}
+            onShowForm={showNicknameForm}
+            onSkip={() => setSaveStep("skipped")}
+            record={getResultRecordSummary()}
+            recentRecords={getRecentRecords(GAME_RECORD_IDS[gameMode], 5)}
+            saveError={saveError}
+            savedRecord={savedRecord}
+            savedRecordIsBest={savedRecordIsBest}
+            saveStep={saveStep}
+            showDeleteConfirm={showDeleteConfirm}
+            text={text}
+            nicknameError={nicknameError}
+            nicknameValue={nicknameValue}
+          />
           <div className="stack">
             <button className="button primary" type="button" onClick={restart}>
               {text.restart}
@@ -695,6 +954,214 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
         />
       ) : null}
     </main>
+  );
+}
+
+function formatDuration(durationMs: number, locale: Locale) {
+  const totalSeconds = Math.max(0, Math.round(durationMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (locale === "ko") {
+    return minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
+  }
+
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+function formatDate(isoDate: string, locale: Locale) {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
+    year: locale === "ko" ? "numeric" : undefined,
+    month: locale === "ko" ? "numeric" : "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function formatScore(score: number, locale: Locale, pointsLabel: string) {
+  return `${new Intl.NumberFormat(locale === "ko" ? "ko-KR" : "en-US").format(score)}${locale === "ko" ? pointsLabel : ` ${pointsLabel}`}`;
+}
+
+function RecordPanel({
+  bestRecord,
+  locale,
+  nicknameError,
+  nicknameValue,
+  onCancelForm,
+  onClearRecords,
+  onCancelDelete,
+  onNicknameChange,
+  onSave,
+  onShowForm,
+  onSkip,
+  recentRecords,
+  record,
+  saveError,
+  savedRecord,
+  savedRecordIsBest,
+  saveStep,
+  showDeleteConfirm,
+  text,
+}: {
+  bestRecord: GameRecord | null;
+  locale: Locale;
+  nicknameError: string;
+  nicknameValue: string;
+  onCancelForm: () => void;
+  onClearRecords: () => void;
+  onCancelDelete: () => void;
+  onNicknameChange: (value: string) => void;
+  onSave: () => void;
+  onShowForm: () => void;
+  onSkip: () => void;
+  recentRecords: GameRecord[];
+  record: GameRecord;
+  saveError: string;
+  savedRecord: GameRecord | null;
+  savedRecordIsBest: boolean;
+  saveStep: SaveStep;
+  showDeleteConfirm: boolean;
+  text: (typeof translations)[Locale];
+}) {
+  const displayedBest = bestRecord;
+  const hasRecords = recentRecords.length > 0;
+
+  return (
+    <section className="record-panel" aria-label={text.recentResults}>
+      <div className="record-summary">
+        <div>
+          <span>{text.score}</span>
+          <strong>{formatScore(record.score, locale, text.points)}</strong>
+        </div>
+        <div>
+          <span>{text.accuracy}</span>
+          <strong>{record.accuracy}%</strong>
+        </div>
+        <div>
+          <span>{text.duration}</span>
+          <strong>{formatDuration(record.durationMs, locale)}</strong>
+        </div>
+      </div>
+
+      {saveStep === "ask" ? (
+        <div className="record-save-box">
+          <p>{text.savePrompt}</p>
+          <div className="record-actions">
+            <button className="button primary record-button" type="button" onClick={onShowForm}>
+              {text.saveResult}
+            </button>
+            <button className="button ghost record-button" type="button" onClick={onSkip}>
+              {text.notNow}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {saveStep === "form" ? (
+        <div className="record-save-box">
+          <p>{text.nicknamePrompt}</p>
+          <label className="record-label" htmlFor="record-nickname">
+            {text.nickname}
+          </label>
+          <input
+            aria-describedby={nicknameError ? "record-nickname-error" : undefined}
+            className="record-input"
+            id="record-nickname"
+            maxLength={16}
+            onChange={(event) => onNicknameChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") onSave();
+              if (event.key === "Escape") onCancelForm();
+            }}
+            type="text"
+            value={nicknameValue}
+          />
+          {nicknameError ? (
+            <p className="record-error" id="record-nickname-error">
+              {nicknameError}
+            </p>
+          ) : null}
+          {saveError ? <p className="record-error">{saveError}</p> : null}
+          <div className="record-actions">
+            <button className="button primary record-button" type="button" onClick={onSave} disabled={Boolean(savedRecord)}>
+              {text.saveScore}
+            </button>
+            <button className="button ghost record-button" type="button" onClick={onCancelForm}>
+              {text.cancel}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {saveStep === "saved" ? (
+        <div className="record-save-box">
+          <p>{text.resultSaved}</p>
+          {savedRecordIsBest ? <strong className="record-best-badge">{text.newPersonalBest}</strong> : null}
+        </div>
+      ) : null}
+
+      <div className="record-history">
+        <div className="record-history-header">
+          <h3>{text.personalBest}</h3>
+        </div>
+        {displayedBest ? <RecordListItem locale={locale} record={displayedBest} text={text} /> : <p className="record-empty">{text.noRecords}</p>}
+      </div>
+
+      <div className="record-history">
+        <div className="record-history-header">
+          <h3>{text.recentResults}</h3>
+          {hasRecords && !showDeleteConfirm ? (
+            <button className="record-delete-button" type="button" onClick={onClearRecords}>
+              {text.deleteRecords}
+            </button>
+          ) : null}
+        </div>
+        {showDeleteConfirm ? (
+          <div className="record-delete-confirm">
+            <p>{text.deleteRecordsConfirm}</p>
+            <div className="record-actions">
+              <button className="button primary record-button" type="button" onClick={onClearRecords}>
+                {text.deleteRecords}
+              </button>
+              <button className="button ghost record-button" type="button" onClick={onCancelDelete}>
+                {text.cancel}
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {hasRecords ? (
+          <div className="record-list">
+            {recentRecords.map((recentRecord) => (
+              <RecordListItem key={recentRecord.id} locale={locale} record={recentRecord} text={text} />
+            ))}
+          </div>
+        ) : (
+          <p className="record-empty">{text.noRecords}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function RecordListItem({
+  locale,
+  record,
+  text,
+}: {
+  locale: Locale;
+  record: GameRecord;
+  text: (typeof translations)[Locale];
+}) {
+  return (
+    <article className="record-list-item">
+      <strong>{record.nickname}</strong>
+      <span>
+        {formatScore(record.score, locale, text.points)} · {record.accuracy}% · {formatDuration(record.durationMs, locale)}
+      </span>
+      <time dateTime={record.completedAt}>{formatDate(record.completedAt, locale)}</time>
+    </article>
   );
 }
 

@@ -493,6 +493,164 @@ button:focus-visible {
   gap: 12px;
 }
 
+.record-panel {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid rgba(255, 247, 237, 0.12);
+  border-radius: 8px;
+  background: rgba(15, 15, 26, 0.82);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+  padding: 16px;
+}
+
+.record-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.record-summary div {
+  border: 1px solid rgba(255, 247, 237, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.06);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.record-summary span,
+.record-label {
+  display: block;
+  color: #fed7aa;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.record-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: #fff7ed;
+  font-size: 15px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.record-save-box,
+.record-history,
+.record-delete-confirm {
+  display: grid;
+  gap: 10px;
+}
+
+.record-save-box {
+  border-top: 1px solid rgba(255, 247, 237, 0.1);
+  padding-top: 12px;
+}
+
+.record-save-box p,
+.record-delete-confirm p,
+.record-empty {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.record-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.record-button {
+  min-height: 44px;
+  padding: 11px 12px;
+  text-align: center;
+}
+
+.record-input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(255, 247, 237, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.08);
+  color: #fff7ed;
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.record-input:focus-visible {
+  outline: 3px solid #fbbf24;
+  outline-offset: 3px;
+}
+
+.record-error {
+  margin: 0;
+  color: #fecaca;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.record-best-badge {
+  color: #fbbf24;
+  font-size: 14px;
+}
+
+.record-history {
+  border-top: 1px solid rgba(255, 247, 237, 0.1);
+  padding-top: 12px;
+}
+
+.record-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.record-history h3 {
+  margin: 0;
+  color: #fff7ed;
+  font-size: 16px;
+}
+
+.record-delete-button {
+  border: 0;
+  background: transparent;
+  color: #fed7aa;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 0;
+}
+
+.record-list {
+  display: grid;
+  gap: 8px;
+}
+
+.record-list-item {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(255, 247, 237, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 247, 237, 0.04);
+  padding: 10px;
+}
+
+.record-list-item strong {
+  color: #fff7ed;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.record-list-item span,
+.record-list-item time {
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 @media (min-width: 720px) {
   .app-shell {
     padding-top: 44px;
