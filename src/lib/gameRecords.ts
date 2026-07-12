@@ -1,4 +1,11 @@
-export type GameRecordId = "primary" | "sanskrit" | "reverse" | "intermediate" | "full-reverse";
+export type GameRecordId =
+  | "primary"
+  | "sanskrit"
+  | "reverse"
+  | "intermediate"
+  | "full-reverse"
+  | "primary-duel"
+  | "intermediate-duel";
 
 export type GameRecord = {
   id: string;
@@ -26,7 +33,15 @@ function canUseStorage() {
 }
 
 function isGameRecordId(value: unknown): value is GameRecordId {
-  return value === "primary" || value === "sanskrit" || value === "reverse" || value === "intermediate" || value === "full-reverse";
+  return (
+    value === "primary" ||
+    value === "sanskrit" ||
+    value === "reverse" ||
+    value === "intermediate" ||
+    value === "full-reverse" ||
+    value === "primary-duel" ||
+    value === "intermediate-duel"
+  );
 }
 
 function isRecord(value: unknown): value is GameRecord {

@@ -9,7 +9,7 @@ type Locale = "ko" | "en";
 type LoadState = "idle" | "loading" | "loaded" | "empty" | "error" | "unconfigured";
 
 const LOCALE_STORAGE_KEY = "ashtanga-sequence-game-locale";
-const GAME_IDS: GameRecordId[] = ["primary", "sanskrit", "reverse", "intermediate", "full-reverse"];
+const GAME_IDS: GameRecordId[] = ["primary", "sanskrit", "reverse", "intermediate", "full-reverse", "primary-duel", "intermediate-duel"];
 
 const rankingText = {
   ko: {
@@ -33,6 +33,8 @@ const rankingText = {
       reverse: "Reverse",
       intermediate: "Intermediate",
       "full-reverse": "Full Reverse",
+      "primary-duel": "Primary Duel",
+      "intermediate-duel": "Intermediate Duel",
     },
   },
   en: {
@@ -56,6 +58,8 @@ const rankingText = {
       reverse: "Reverse",
       intermediate: "Intermediate",
       "full-reverse": "Full Reverse",
+      "primary-duel": "Primary Duel",
+      "intermediate-duel": "Intermediate Duel",
     },
   },
 } as const;

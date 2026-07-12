@@ -15,7 +15,7 @@ create table if not exists public.game_scores (
   completed_at timestamptz not null,
   created_at timestamptz not null default now(),
   constraint game_scores_nickname_length_check check (char_length(btrim(nickname)) between 2 and 12),
-  constraint game_scores_game_id_check check (game_id in ('primary', 'sanskrit', 'reverse', 'intermediate', 'full-reverse')),
+  constraint game_scores_game_id_check check (game_id in ('primary', 'sanskrit', 'reverse', 'intermediate', 'full-reverse', 'primary-duel', 'intermediate-duel')),
   constraint game_scores_score_check check (score >= 0),
   constraint game_scores_correct_answers_check check (correct_answers >= 0),
   constraint game_scores_total_questions_check check (total_questions > 0),
@@ -24,6 +24,13 @@ create table if not exists public.game_scores (
   constraint game_scores_duration_check check (duration_ms > 0),
   constraint game_scores_language_check check (language is null or language in ('ko', 'en'))
 );
+
+alter table public.game_scores
+drop constraint if exists game_scores_game_id_check;
+
+alter table public.game_scores
+add constraint game_scores_game_id_check
+check (game_id in ('primary', 'sanskrit', 'reverse', 'intermediate', 'full-reverse', 'primary-duel', 'intermediate-duel'));
 
 alter table public.game_scores enable row level security;
 
@@ -41,7 +48,7 @@ for insert
 to anon, authenticated
 with check (
   char_length(btrim(nickname)) between 2 and 12
-  and game_id in ('primary', 'sanskrit', 'reverse', 'intermediate', 'full-reverse')
+  and game_id in ('primary', 'sanskrit', 'reverse', 'intermediate', 'full-reverse', 'primary-duel', 'intermediate-duel')
   and score >= 0
   and correct_answers >= 0
   and total_questions > 0

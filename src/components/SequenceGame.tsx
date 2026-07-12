@@ -7,7 +7,9 @@ import {
   asanaEnglishNames,
   FALLBACK_CHOICES,
   fullReverseLevels,
+  intermediateFullSequence,
   intermediateLevels,
+  primaryDuelSequence,
   primaryFullEnglishSequence,
   primaryLevels,
   reverseLevels,
@@ -28,10 +30,11 @@ import {
 } from "@/lib/gameRecords";
 import { isPublicRankingConfigured, savePublicGameScore } from "@/lib/gameScores";
 
-type LevelSelectMode = "level-select" | "reverse-level-select" | "intermediate-level-select" | "full-reverse-level-select";
+type LevelSelectMode = "level-select" | "reverse-level-select" | "intermediate-level-select" | "full-reverse-level-select" | "duel-select";
 type SequenceMode = "primary" | "reverse" | "intermediate" | "full-reverse";
-type Mode = "home" | LevelSelectMode | SequenceMode | "english" | "result";
-type GameMode = SequenceMode | "english";
+type DuelMode = "primary-duel" | "intermediate-duel";
+type Mode = "home" | LevelSelectMode | SequenceMode | DuelMode | "english" | "result";
+type GameMode = SequenceMode | DuelMode | "english";
 type Feedback = "correct" | "wrong" | "timeout" | null;
 type Locale = "ko" | "en";
 type SeriesCategory = "primary" | "intermediate";
@@ -56,11 +59,27 @@ const translations = {
     description: "프라이머리 순서와 산스크리트 이름을 짧게 반복해요.",
     trustBadgeBrand: "ASHTANGA YOGA STUDIO",
     trustBadgeText: "공인 1호 티쳐가 개발한\n아쉬탕가 요가 시퀀스 학습 게임",
+    noticeButton: "ⓘ Notice",
+    noticeTitle: "업데이트 소식",
+    latestUpdateLabel: "🚀 최신 업데이트",
+    latestUpdateTitle: "✅ AI Vinyasa Duel 오픈",
+    latestUpdateBody: "AI가 제시한 현재 아사나를 보고\n다음 아사나를 선택해 보세요.",
+    comingNextLabel: "🔜 다음 업데이트",
+    comingNextTitle: "🤖 AI Vinyasa Duel",
+    comingNextBody: "AI가 현재 아사나를 제시하면\n다음 아사나를 선택하는\n새로운 대결형 게임입니다.",
+    comingSoon: "Coming Soon",
+    latestUpdateShortLabel: "LATEST UPDATE",
+    comingNextShortLabel: "Coming Next",
+    releaseHistory: "Release History",
     primaryGame: "프라이머리 시퀀스 게임",
     sanskritGame: "산스크리트 이름 게임",
     reverseGame: "리버스 시퀀스 게임",
     intermediateGame: "인터미디어트 시퀀스 게임",
     fullReverseGame: "풀 리버스 게임",
+    aiDuelGame: "AI 시퀀스 듀얼",
+    aiDuelDescription: "AI가 제시하는 현재 자세에 이어질 다음 자세를 고르세요.",
+    primaryDuel: "프라이머리 듀얼",
+    intermediateDuel: "인터미디어트 듀얼",
     publicRanking: "전체 랭킹",
     viewPublicRanking: "전체 랭킹 보기",
     intermediateDescription: "인터미디어트 시리즈의 순서를 반복하며 익혀보세요.",
@@ -71,6 +90,7 @@ const translations = {
     tryAgain: "다시 도전",
     gameOver: "GAME OVER",
     levelClear: "LEVEL CLEAR",
+    perfectClear: "PERFECT CLEAR",
     completed: "COMPLETE",
     correct: "정답!",
     wrong: "오답!",
@@ -109,6 +129,12 @@ const translations = {
     deleteRecords: "삭제",
     accuracy: "정답률",
     duration: "소요 시간",
+    progress: "진행도",
+    maxCombo: "최대 콤보",
+    correctAnswers: "정답 수",
+    perfect: "Perfect",
+    aiCurrentAsana: "AI CURRENT ASANA",
+    chooseNextAsana: "다음 자세를 선택하세요",
     completedAt: "완료 날짜",
     points: "점",
   },
@@ -118,11 +144,27 @@ const translations = {
     description: "Practice the Primary Series sequence and Sanskrit names through quick repetition.",
     trustBadgeBrand: "ASHTANGA YOGA STUDIO",
     trustBadgeText: "Developed by\nKorea's First Authorized Ashtanga Teacher",
+    noticeButton: "ⓘ Notice",
+    noticeTitle: "What's New",
+    latestUpdateLabel: "🚀 Latest Update",
+    latestUpdateTitle: "✅ AI Vinyasa Duel is Live",
+    latestUpdateBody: "Choose the next asana after the pose presented by the AI.",
+    comingNextLabel: "🔜 Coming Next",
+    comingNextTitle: "🤖 AI Vinyasa Duel",
+    comingNextBody: "Choose the next asana after the pose presented by the AI.",
+    comingSoon: "Coming Soon",
+    latestUpdateShortLabel: "LATEST UPDATE",
+    comingNextShortLabel: "Coming Next",
+    releaseHistory: "Release History",
     primaryGame: "Primary Sequence Game",
     sanskritGame: "Sanskrit Name Game",
     reverseGame: "Reverse Sequence Game",
     intermediateGame: "Intermediate Sequence Game",
     fullReverseGame: "Full Reverse Game",
+    aiDuelGame: "AI Vinyasa Duel",
+    aiDuelDescription: "Choose the next posture after the current posture shown by AI.",
+    primaryDuel: "Primary Duel",
+    intermediateDuel: "Intermediate Duel",
     publicRanking: "Public Ranking",
     viewPublicRanking: "View ranking",
     intermediateDescription: "Practice and memorize the Intermediate Series sequence.",
@@ -133,6 +175,7 @@ const translations = {
     tryAgain: "Try Again",
     gameOver: "GAME OVER",
     levelClear: "LEVEL CLEAR",
+    perfectClear: "PERFECT CLEAR",
     completed: "COMPLETED",
     correct: "Correct!",
     wrong: "Wrong!",
@@ -171,6 +214,12 @@ const translations = {
     deleteRecords: "Delete",
     accuracy: "Accuracy",
     duration: "Time",
+    progress: "Progress",
+    maxCombo: "Max Combo",
+    correctAnswers: "Correct",
+    perfect: "Perfect",
+    aiCurrentAsana: "AI CURRENT ASANA",
+    chooseNextAsana: "Choose the next posture",
     completedAt: "Completed",
     points: "pts",
   },
@@ -182,6 +231,8 @@ const GAME_SERIES: Record<GameMode, SeriesCategory> = {
   english: "primary",
   intermediate: "intermediate",
   "full-reverse": "intermediate",
+  "primary-duel": "primary",
+  "intermediate-duel": "intermediate",
 };
 
 const GAME_RECORD_IDS: Record<GameMode, GameRecordId> = {
@@ -190,6 +241,8 @@ const GAME_RECORD_IDS: Record<GameMode, GameRecordId> = {
   english: "sanskrit",
   intermediate: "intermediate",
   "full-reverse": "full-reverse",
+  "primary-duel": "primary-duel",
+  "intermediate-duel": "intermediate-duel",
 };
 
 const englishPrimaryLevelTitles = [
@@ -261,11 +314,13 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   const [englishRounds, setEnglishRounds] = useState<EnglishRound[]>([]);
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
   const [lives, setLives] = useState(STARTING_LIVES);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [choices, setChoices] = useState<string[]>([]);
+  const [duelChoices, setDuelChoices] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(0);
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
   const [resultCompletedAt, setResultCompletedAt] = useState<number | null>(null);
@@ -279,6 +334,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   const [hasSubmittedPublicScore, setHasSubmittedPublicScore] = useState(false);
   const [, setRecordsVersion] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isNoticeOpen, setIsNoticeOpen] = useState(false);
+  const [isReleaseHistoryOpen, setIsReleaseHistoryOpen] = useState(false);
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
   const wrongSoundRef = useRef<HTMLAudioElement | null>(null);
@@ -287,13 +344,20 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   const currentAsana = sequence[currentIndex];
   const nextAsana = sequence[currentIndex + 1];
   const englishRound = englishRounds[currentIndex];
+  const isDuelMode = mode === "primary-duel" || mode === "intermediate-duel";
+  const duelSequence = mode === "primary-duel" ? primaryDuelSequence : mode === "intermediate-duel" ? intermediateFullSequence : EMPTY_SEQUENCE;
+  const duelCurrentAsana = duelSequence[currentIndex];
+  const duelNextAsana = duelSequence[currentIndex + 1];
+  const totalDuelQuestions = Math.floor(duelSequence.length / 2);
+  const currentDuelQuestion = Math.min(Math.floor(currentIndex / 2) + 1, totalDuelQuestions);
   const isSequenceMode = mode === "primary" || mode === "reverse" || mode === "intermediate" || mode === "full-reverse";
-  const isPlaying = isSequenceMode || mode === "english";
-  const hasNextPrompt = isSequenceMode ? Boolean(nextAsana) : Boolean(englishRound);
+  const isPlaying = isSequenceMode || mode === "english" || isDuelMode;
+  const hasNextPrompt = isDuelMode ? Boolean(duelNextAsana) : isSequenceMode ? Boolean(nextAsana) : Boolean(englishRound);
   const text = translations[locale];
-  const totalQuestions = isSequenceMode ? Math.max(sequence.length - 1, 0) : englishRounds.length;
+  const totalQuestions = isDuelMode ? totalDuelQuestions : isSequenceMode ? Math.max(sequence.length - 1, 0) : englishRounds.length;
   const isGameOverResult = lives <= 0 && isPlaying;
   const isSequenceCompleteResult = isSequenceMode && Boolean(selectedLevel) && !nextAsana;
+  const isDuelCompleteResult = isDuelMode && duelSequence.length > 1 && currentIndex + 1 >= duelSequence.length;
   const isEnglishCompleteResult = mode === "english" && englishRounds.length > 0 && currentIndex >= englishRounds.length;
 
   function getLevelTitle(level: LevelConfig, levelMode: SequenceMode) {
@@ -310,12 +374,17 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     return titles[level.id - 1] ?? level.title;
   }
 
+  function getDuelTitle(duelMode: DuelMode) {
+    return duelMode === "primary-duel" ? text.primaryDuel : text.intermediateDuel;
+  }
+
   function getGameModeForView(viewMode: Mode): GameMode | null {
     if (viewMode === "home" || viewMode === "result") return null;
     if (viewMode === "level-select") return "primary";
     if (viewMode === "reverse-level-select") return "reverse";
     if (viewMode === "intermediate-level-select") return "intermediate";
     if (viewMode === "full-reverse-level-select") return "full-reverse";
+    if (viewMode === "duel-select") return null;
     return viewMode;
   }
 
@@ -405,6 +474,17 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   }, [englishRound, mode]);
 
   useEffect(() => {
+    if (!isDuelMode || !duelNextAsana) return;
+
+    const wrongChoices = shuffleArray(
+      Array.from(new Set(duelSequence)).filter((asana) => asana !== duelNextAsana && asana !== duelCurrentAsana)
+    ).slice(0, 3);
+
+    setDuelChoices(shuffleArray([duelNextAsana, ...wrongChoices]));
+  }, [duelCurrentAsana, duelNextAsana, duelSequence, isDuelMode]);
+
+  useEffect(() => {
+    if (isDuelMode) return;
     if (!isPlaying || feedback || !hasNextPrompt) return;
 
     if (timeLeft <= 0) {
@@ -417,13 +497,28 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     }, 1000);
 
     return () => window.clearTimeout(timer);
-  }, [feedback, handleTimeout, hasNextPrompt, isPlaying, timeLeft]);
+  }, [feedback, handleTimeout, hasNextPrompt, isDuelMode, isPlaying, timeLeft]);
 
   useEffect(() => {
-    if ((isGameOverResult || isSequenceCompleteResult || isEnglishCompleteResult) && resultCompletedAt === null) {
+    if ((isGameOverResult || isSequenceCompleteResult || isDuelCompleteResult || isEnglishCompleteResult) && resultCompletedAt === null) {
       setResultCompletedAt(Date.now());
     }
-  }, [isEnglishCompleteResult, isGameOverResult, isSequenceCompleteResult, resultCompletedAt]);
+  }, [isDuelCompleteResult, isEnglishCompleteResult, isGameOverResult, isSequenceCompleteResult, resultCompletedAt]);
+
+  useEffect(() => {
+    if (!isNoticeOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsNoticeOpen(false);
+        setIsReleaseHistoryOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isNoticeOpen]);
 
   const topCategoryLabel = getCategoryLabel(mode);
 
@@ -453,11 +548,13 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setCurrentIndex(0);
     setScore(0);
     setCombo(0);
+    setMaxCombo(0);
     setLives(STARTING_LIVES);
     setCorrectAnswers(0);
     setMistakes(0);
     setFeedback(null);
     setChoices([]);
+    setDuelChoices([]);
     setTimeLeft(timeLimit);
     setRunStartedAt(startTimer ? Date.now() : null);
     resetRecordState();
@@ -512,6 +609,14 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     setMode("english");
   }
 
+  function startDuel(nextMode: DuelMode) {
+    setGameMode(nextMode);
+    setSelectedLevel(null);
+    setEnglishRounds([]);
+    resetRunState(0, true);
+    setMode(nextMode);
+  }
+
   function handleSequenceChoice(choice: string) {
     if (!nextAsana || feedback) return;
 
@@ -520,7 +625,11 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
       setFeedback("correct");
       setScore((prev) => prev + 100);
       setCorrectAnswers((prev) => prev + 1);
-      setCombo((prev) => prev + 1);
+      setCombo((prev) => {
+        const nextCombo = prev + 1;
+        setMaxCombo((currentMax) => Math.max(currentMax, nextCombo));
+        return nextCombo;
+      });
       setCurrentIndex((prev) => prev + 1);
       setTimeLeft(selectedLevel?.timeLimit ?? 0);
       clearFeedbackSoon();
@@ -544,7 +653,11 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
       setFeedback("correct");
       setScore((prev) => prev + 100);
       setCorrectAnswers((prev) => prev + 1);
-      setCombo((prev) => prev + 1);
+      setCombo((prev) => {
+        const nextCombo = prev + 1;
+        setMaxCombo((currentMax) => Math.max(currentMax, nextCombo));
+        return nextCombo;
+      });
       setCurrentIndex((prev) => prev + 1);
       setTimeLeft(ENGLISH_TIME_LIMIT);
       clearFeedbackSoon();
@@ -561,9 +674,42 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     clearFeedbackSoon();
   }
 
+  function handleDuelChoice(choice: string) {
+    if (!duelNextAsana || feedback) return;
+
+    if (choice === duelNextAsana) {
+      playSound(correctSoundRef);
+      setFeedback("correct");
+      setScore((prev) => prev + 100);
+      setCorrectAnswers((prev) => prev + 1);
+      setCombo((prev) => {
+        const nextCombo = prev + 1;
+        setMaxCombo((currentMax) => Math.max(currentMax, nextCombo));
+        return nextCombo;
+      });
+      window.setTimeout(() => {
+        setCurrentIndex((previousIndex) => previousIndex + 2);
+        setFeedback(null);
+      }, 450);
+      return;
+    }
+
+    playSound(wrongSoundRef);
+    setFeedback("wrong");
+    setMistakes((prev) => prev + 1);
+    window.setTimeout(() => {
+      setLives(0);
+    }, 700);
+  }
+
   function restart() {
     if (gameMode === "english") {
       startEnglish();
+      return;
+    }
+
+    if (gameMode === "primary-duel" || gameMode === "intermediate-duel") {
+      startDuel(gameMode);
       return;
     }
 
@@ -585,11 +731,13 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
 
   function buildCurrentRecord(nickname: string): GameRecord {
     const completedAtMs = resultCompletedAt ?? Date.now();
-    const durationMs = Math.max(completedAtMs - (runStartedAt ?? completedAtMs), 0);
+    const durationMs = Math.max(completedAtMs - (runStartedAt ?? completedAtMs), runStartedAt ? 1 : 0);
     const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     const levelTitle =
       gameMode === "english"
         ? text.sanskritGame
+        : gameMode === "primary-duel" || gameMode === "intermediate-duel"
+          ? getDuelTitle(gameMode)
         : selectedLevel
           ? getLevelTitle(selectedLevel, gameMode)
           : text.appTitle;
@@ -700,6 +848,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             <h1 className="brand">{text.tryAgain}</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
+            <ResultDetails isPerfect={false} maxCombo={maxCombo} record={getResultRecordSummary()} text={text} />
           </div>
           <RecordPanel
             bestRecord={getBestRecord(GAME_RECORD_IDS[gameMode])}
@@ -746,6 +895,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             <h1 className="brand">{getLevelTitle(selectedLevel, mode as SequenceMode)}</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
+            <ResultDetails isPerfect={false} maxCombo={maxCombo} record={getResultRecordSummary()} text={text} />
           </div>
           <RecordPanel
             bestRecord={getBestRecord(GAME_RECORD_IDS[gameMode])}
@@ -787,6 +937,53 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
     );
   }
 
+  if (isDuelCompleteResult) {
+    return (
+      <main className="app-shell">
+        <section className="screen">
+          <div className="panel center-panel">
+            <p className="eyebrow">{text.perfectClear}</p>
+            <h1 className="brand">{getDuelTitle(mode as DuelMode)}</h1>
+            <p className="result-score">{score}</p>
+            <p className="small-copy">FLOW x{combo}</p>
+            <ResultDetails isPerfect maxCombo={maxCombo} record={getResultRecordSummary()} text={text} />
+          </div>
+          <RecordPanel
+            bestRecord={getBestRecord(GAME_RECORD_IDS[gameMode])}
+            locale={locale}
+            onCancelDelete={() => setShowDeleteConfirm(false)}
+            onCancelForm={() => setSaveStep("ask")}
+            onClearRecords={handleClearCurrentGameRecords}
+            onNicknameChange={setNicknameValue}
+            onSave={handleSaveRecord}
+            onShowForm={showNicknameForm}
+            onSkip={() => setSaveStep("skipped")}
+            onViewRanking={() => router.push(`/ranking?game=${GAME_RECORD_IDS[gameMode]}`)}
+            publicSaveStatus={publicSaveStatus}
+            record={getResultRecordSummary()}
+            recentRecords={getRecentRecords(GAME_RECORD_IDS[gameMode], 5)}
+            saveError={saveError}
+            savedRecord={savedRecord}
+            savedRecordIsBest={savedRecordIsBest}
+            saveStep={saveStep}
+            showDeleteConfirm={showDeleteConfirm}
+            text={text}
+            nicknameError={nicknameError}
+            nicknameValue={nicknameValue}
+          />
+          <div className="stack">
+            <button className="button primary" type="button" onClick={() => setMode("duel-select")}>
+              {text.selectLevel}
+            </button>
+            <button className="button ghost" type="button" onClick={goHome}>
+              {text.home}
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (mode === "english" && currentIndex >= englishRounds.length) {
     return (
       <main className="app-shell">
@@ -796,6 +993,7 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             <h1 className="brand">{text.sanskritGame}</h1>
             <p className="result-score">{score}</p>
             <p className="small-copy">FLOW x{combo}</p>
+            <ResultDetails isPerfect={false} maxCombo={maxCombo} record={getResultRecordSummary()} text={text} />
           </div>
           <RecordPanel
             bestRecord={getBestRecord(GAME_RECORD_IDS[gameMode])}
@@ -848,7 +1046,8 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             {mode === "level-select" ||
             mode === "reverse-level-select" ||
             mode === "intermediate-level-select" ||
-            mode === "full-reverse-level-select"
+            mode === "full-reverse-level-select" ||
+            mode === "duel-select"
               ? text.selectLevel
               : mode === "primary"
                 ? selectedLevel && getLevelTitle(selectedLevel, "primary")
@@ -858,13 +1057,28 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
                     ? selectedLevel && getLevelTitle(selectedLevel, "intermediate")
                     : mode === "full-reverse"
                       ? selectedLevel && getLevelTitle(selectedLevel, "full-reverse")
+                      : mode === "primary-duel" || mode === "intermediate-duel"
+                        ? getDuelTitle(mode)
                       : mode === "english"
                         ? text.sanskritGame
                         : text.appTitle}
           </h1>
         </div>
         <div className="top-actions">
-          <LocaleSwitch locale={locale} onChange={changeLocale} />
+          <div className="locale-notice-stack">
+            <LocaleSwitch locale={locale} onChange={changeLocale} />
+            {mode === "home" ? (
+              <button
+                aria-controls="home-notice-panel"
+                aria-expanded={isNoticeOpen}
+                className="notice-toggle"
+                type="button"
+                onClick={() => setIsNoticeOpen((prev) => !prev)}
+              >
+                {text.noticeButton}
+              </button>
+            ) : null}
+          </div>
           {mode !== "home" ? (
             <button className="button ghost small-button" type="button" onClick={goHome}>
               {text.home}
@@ -887,6 +1101,13 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
               </span>
             </div>
           </div>
+          {isNoticeOpen ? (
+            <NoticePanel
+              isReleaseHistoryOpen={isReleaseHistoryOpen}
+              onToggleReleaseHistory={() => setIsReleaseHistoryOpen((prev) => !prev)}
+              text={text}
+            />
+          ) : null}
           <div className="stack">
             <button className="button primary" type="button" onClick={() => setMode("level-select")}>
               {text.primaryGame}
@@ -913,9 +1134,20 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
             >
               {text.fullReverseGame}
             </button>
+            <button className="button duel" type="button" onClick={() => setMode("duel-select")}>
+              {text.aiDuelGame}
+            </button>
             <button className="button ghost" type="button" onClick={() => router.push("/ranking")}>
               {text.publicRanking}
             </button>
+          </div>
+          <div className="notice-card compact-notice-card">
+            <div className="notice-title">{text.latestUpdateShortLabel}</div>
+            <div className="notice-list">
+              <span>🤖 AI Vinyasa Duel</span>
+              <span>Primary Duel</span>
+              <span>Intermediate Duel</span>
+            </div>
           </div>
           <div className="social-row">
   <a href="https://cafe.naver.com/ashtangayoga" target="_blank" rel="noopener noreferrer" aria-label="Naver Cafe">
@@ -975,6 +1207,18 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
         </section>
       ) : null}
 
+      {mode === "duel-select" ? (
+        <section className="stack level-list">
+          <p className="small-copy">{text.aiDuelDescription}</p>
+          <button className="button level-button" type="button" onClick={() => startDuel("primary-duel")}>
+            <span className="level-title">{text.primaryDuel}</span>
+          </button>
+          <button className="button level-button" type="button" onClick={() => startDuel("intermediate-duel")}>
+            <span className="level-title">{text.intermediateDuel}</span>
+          </button>
+        </section>
+      ) : null}
+
       {isSequenceMode && selectedLevel && nextAsana ? (
         <GameBoard
           choices={choices}
@@ -1008,6 +1252,26 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
           statLabels={text}
           timeLeft={timeLeft}
           title={text.sanskritInstruction}
+        />
+      ) : null}
+
+      {isDuelMode && duelCurrentAsana && duelNextAsana ? (
+        <DuelBoard
+          choices={duelChoices}
+          combo={combo}
+          correctAnswer={duelNextAsana}
+          currentPrompt={getAsanaDisplayName(duelCurrentAsana)}
+          displayChoice={getAsanaDisplayName}
+          feedback={feedback}
+          locale={locale}
+          maxCombo={maxCombo}
+          onChoice={handleDuelChoice}
+          progressCurrent={currentDuelQuestion}
+          progressTotal={totalDuelQuestions}
+          score={score}
+          statLabels={text}
+          title={getDuelTitle(mode)}
+          startedAt={runStartedAt}
         />
       ) : null}
     </main>
@@ -1230,6 +1494,85 @@ function RecordListItem({
   );
 }
 
+function NoticePanel({
+  isReleaseHistoryOpen,
+  onToggleReleaseHistory,
+  text,
+}: {
+  isReleaseHistoryOpen: boolean;
+  onToggleReleaseHistory: () => void;
+  text: (typeof translations)[Locale];
+}) {
+  const releaseHistory = [
+    ["v1.5", "AI Vinyasa Duel"],
+    ["v1.4", "Public Ranking"],
+    ["v1.3", "Intermediate Game"],
+    ["v1.2", "Reverse Game"],
+    ["v1.1", "Sanskrit Game"],
+    ["v1.0", "Primary Sequence"],
+  ] as const;
+
+  return (
+    <section className="notice-panel" id="home-notice-panel" aria-label={text.noticeTitle}>
+      <div className="notice-panel-header">
+        <h2>{text.noticeTitle}</h2>
+      </div>
+
+      <div className="notice-section">
+        <p className="notice-kicker">{text.latestUpdateLabel}</p>
+        <h3>{text.latestUpdateTitle}</h3>
+        <p>
+          {text.latestUpdateBody.split("\n").map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </p>
+      </div>
+
+      <div className="release-history">
+        <button aria-expanded={isReleaseHistoryOpen} type="button" onClick={onToggleReleaseHistory}>
+          {text.releaseHistory}
+        </button>
+        {isReleaseHistoryOpen ? (
+          <div className="release-history-list">
+            {releaseHistory.map(([version, label]) => (
+              <div key={version}>
+                <span>{version}</span>
+                <p>{label}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function ResultDetails({
+  isPerfect,
+  maxCombo,
+  record,
+  text,
+}: {
+  isPerfect: boolean;
+  maxCombo: number;
+  record: GameRecord;
+  text: (typeof translations)[Locale];
+}) {
+  return (
+    <div className="result-detail-grid">
+      <span>
+        {text.correctAnswers} {record.correctAnswers}/{record.totalQuestions}
+      </span>
+      <span>
+        {text.maxCombo} {maxCombo}
+      </span>
+      <span>
+        {text.perfect} {isPerfect ? "YES" : "NO"}
+      </span>
+    </div>
+  );
+}
+
 function PublicSaveMessage({
   status,
   text,
@@ -1249,6 +1592,112 @@ function PublicSaveMessage({
           : text.publicSaveFailed;
 
   return <p className={status === "saved" ? "record-public-success" : "record-public-note"}>{message}</p>;
+}
+
+function DuelBoard({
+  choices,
+  combo,
+  correctAnswer,
+  currentPrompt,
+  displayChoice,
+  feedback,
+  locale,
+  maxCombo,
+  onChoice,
+  progressCurrent,
+  progressTotal,
+  score,
+  startedAt,
+  statLabels,
+  title,
+}: {
+  choices: string[];
+  combo: number;
+  correctAnswer: string;
+  currentPrompt: string;
+  displayChoice: (choice: string) => string;
+  feedback: Feedback;
+  locale: Locale;
+  maxCombo: number;
+  onChoice: (choice: string) => void;
+  progressCurrent: number;
+  progressTotal: number;
+  score: number;
+  startedAt: number | null;
+  statLabels: (typeof translations)[Locale];
+  title: string;
+}) {
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!startedAt) return;
+
+    const updateElapsed = () => setElapsedMs(Date.now() - startedAt);
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
+
+  return (
+    <section className="game-card duel-card">
+      <div className="game-header">
+        <div>
+          <p className="eyebrow">{statLabels.aiDuelGame}</p>
+          <h2>{title}</h2>
+        </div>
+      </div>
+
+      <div className="duel-stats">
+        <div className="stat">
+          <span>{statLabels.score}</span>
+          <strong>{score}</strong>
+        </div>
+        <div className="stat">
+          <span>{statLabels.combo}</span>
+          <strong>{combo}</strong>
+        </div>
+        <div className="stat">
+          <span>{statLabels.maxCombo}</span>
+          <strong>{maxCombo}</strong>
+        </div>
+      </div>
+
+      <div className="current-panel duel-current">
+        <p>{statLabels.aiCurrentAsana}</p>
+        <h3>{currentPrompt}</h3>
+      </div>
+
+      <div className="duel-meta">
+        <span>
+          {statLabels.progress} {progressCurrent} / {progressTotal}
+        </span>
+        <span>
+          {statLabels.duration} {formatDuration(elapsedMs, locale)}
+        </span>
+      </div>
+
+      <div className="next-row">
+        <p>{statLabels.chooseNextAsana}</p>
+      </div>
+
+      <div className="choice-grid">
+        {choices.map((choice) => (
+          <button
+            className={`button option ${feedback === "correct" ? "duel-correct-pulse" : ""} ${
+              feedback === "wrong" && choice === correctAnswer ? "correct" : ""
+            }`}
+            key={choice}
+            type="button"
+            onClick={() => onChoice(choice)}
+            disabled={Boolean(feedback)}
+          >
+            {displayChoice(choice)}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function GameBoard({

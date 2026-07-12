@@ -25,7 +25,15 @@ export type GameRankingEntry = GameRecord & {
   createdAt?: string;
 };
 
-const ALLOWED_GAME_IDS: GameRecordId[] = ["primary", "sanskrit", "reverse", "intermediate", "full-reverse"];
+const ALLOWED_GAME_IDS: GameRecordId[] = [
+  "primary",
+  "sanskrit",
+  "reverse",
+  "intermediate",
+  "full-reverse",
+  "primary-duel",
+  "intermediate-duel",
+];
 
 export function isPublicRankingConfigured() {
   return isSupabaseConfigured();

@@ -290,6 +290,13 @@ export const intermediateFullSequence = [
   ...intermediateLevel5Sequence,
 ];
 
+export const primaryDuelSequence = [
+  ...standingSequence,
+  ...seatedHalfSequence,
+  ...fullSeriesSequence,
+  ...finishingSequence,
+];
+
 export const primaryLevels: LevelConfig[] = [
   { id: 1, title: "LEVEL 1 · 수리야 A", sequence: suryaASequence, timeLimit: 8 },
   { id: 2, title: "LEVEL 2 · 수리야 B", sequence: suryaBSequence, timeLimit: 8 },
