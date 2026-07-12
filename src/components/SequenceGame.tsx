@@ -54,6 +54,8 @@ const translations = {
     appTitle: "아쉬탕가 시퀀스 게임",
     instantStart: "로그인 없이 바로 시작",
     description: "프라이머리 순서와 산스크리트 이름을 짧게 반복해요.",
+    trustBadgeBrand: "ASHTANGA YOGA STUDIO",
+    trustBadgeText: "공인 1호 티쳐가 개발한\n아쉬탕가 요가 시퀀스 학습 게임",
     primaryGame: "프라이머리 시퀀스 게임",
     sanskritGame: "산스크리트 이름 게임",
     reverseGame: "리버스 시퀀스 게임",
@@ -114,6 +116,8 @@ const translations = {
     appTitle: "Ashtanga Sequence Game",
     instantStart: "Start instantly. No login required.",
     description: "Practice the Primary Series sequence and Sanskrit names through quick repetition.",
+    trustBadgeBrand: "ASHTANGA YOGA STUDIO",
+    trustBadgeText: "Developed by\nKorea's First Authorized Ashtanga Teacher",
     primaryGame: "Primary Sequence Game",
     sanskritGame: "Sanskrit Name Game",
     reverseGame: "Reverse Sequence Game",
@@ -874,6 +878,14 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
           <div>
             <p className="eyebrow">{text.instantStart}</p>
             <p className="small-copy">{text.description}</p>
+            <div className="trust-badge" aria-label={text.trustBadgeText.replace("\n", " ")}>
+              <p>{text.trustBadgeBrand}</p>
+              <span>
+                {text.trustBadgeText.split("\n").map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
+              </span>
+            </div>
           </div>
           <div className="stack">
             <button className="button primary" type="button" onClick={() => setMode("level-select")}>
