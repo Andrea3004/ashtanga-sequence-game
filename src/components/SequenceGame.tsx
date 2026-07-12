@@ -76,7 +76,7 @@ const translations = {
     reverseGame: "리버스 시퀀스 게임",
     intermediateGame: "인터미디어트 시퀀스 게임",
     fullReverseGame: "풀 리버스 게임",
-    aiDuelGame: "AI 시퀀스 듀얼",
+    aiDuelGame: "AI 빈야사 듀얼",
     aiDuelDescription: "AI가 제시하는 현재 자세에 이어질 다음 자세를 고르세요.",
     primaryDuel: "프라이머리 듀얼",
     intermediateDuel: "인터미디어트 듀얼",
