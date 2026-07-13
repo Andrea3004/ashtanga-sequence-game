@@ -1665,7 +1665,7 @@ function DuelBoard({
 
       <div className="current-panel duel-current">
         <p>{statLabels.aiCurrentAsana}</p>
-        <h3>{currentPrompt}</h3>
+        <h3 className="duel-current-asana-name">{currentPrompt}</h3>
       </div>
 
       <div className="duel-meta">

@@ -831,6 +831,11 @@ button:focus-visible {
   position: relative;
 }
 
+.duel-current .duel-current-asana-name {
+  color: #fb923c;
+  text-shadow: 0 0 18px rgba(251, 146, 60, 0.32);
+}
+
 .duel-current::after {
   content: "";
   display: block;
