@@ -46,7 +46,7 @@ export const asanaEnglishNames: Record<string, string> = {
   "비라바드라아사나 B": "Virabhadrasana B",
   단다아사나: "Dandasana",
   "파스치마타나아사나A~D": "Paschimottanasana A–D",
-  푸르보타나아사나: "Purvottanasana",
+  푸르바타나아사나: "Purvattanasana",
   "아르다 받다 파드마 파스치마타나아사나": "Ardha Baddha Padma Paschimottanasana",
   "트리앙 무카에카 파다 파스치마타나아사나": "Triang Mukha Eka Pada Paschimottanasana",
   "자누 시르샤아사나 A~C": "Janu Shirshasana A–C",
@@ -190,7 +190,7 @@ const standingSequence = [
 const seatedHalfSequence = [
   "단다아사나",
   "파스치마타나아사나A~D",
-  "푸르보타나아사나",
+  "푸르바타나아사나",
   "아르다 받다 파드마 파스치마타나아사나",
   "트리앙 무카에카 파다 파스치마타나아사나",
   "자누 시르샤아사나 A~C",
@@ -291,7 +291,7 @@ export const intermediateFullSequence = [
 ];
 
 export const primaryDuelSequence = [
-  ...standingSequence,
+  ...standingSequence.slice(0, -1),
   ...seatedHalfSequence,
   ...fullSeriesSequence,
   ...finishingSequence,
@@ -374,7 +374,7 @@ export const englishQuizPool: EnglishQuizPose[] = [
   { sanskrit: "Virabhadrasana B", transliteration: "비라바드라아사나 B" },
   { sanskrit: "Dandasana", transliteration: "단다아사나" },
   { sanskrit: "PaschimottanasanaA~D", transliteration: "파스치마타나아사나A~D" },
-  { sanskrit: "Purvottanasana", transliteration: "푸르바타나아사나" },
+  { sanskrit: "Purvattanasana", transliteration: "푸르바타나아사나" },
   { sanskrit: "Janu Shirshasana A", transliteration: "자누 시르샤아사나 A" },
   { sanskrit: "Janu Shirshasana B", transliteration: "자누 시르샤아사나 B" },
   { sanskrit: "Janu Shirshasana C", transliteration: "자누 시르샤아사나 C" },
@@ -415,7 +415,7 @@ export const primaryFullEnglishSequence: EnglishQuizPose[] = [
   { sanskrit: "Virabhadrasana B", transliteration: "비라바드라아사나 B" },
   { sanskrit: "Dandasana", transliteration: "단다아사나" },
   { sanskrit: "Paschimottanasana A~D", transliteration: "파스치마타나아사나 A~D" },
-  { sanskrit: "Purvottanasana", transliteration: "푸르바타나아사나" },
+  { sanskrit: "Purvattanasana", transliteration: "푸르바타나아사나" },
   { sanskrit: "Ardha Baddha Padma Paschimottanasana", transliteration: "아르다 받다 파드마 파스치마타나아사나" },
   { sanskrit: "Triang Mukha Eka Pada Paschimottanasana", transliteration: "트리앙 무카에카 파다 파스치마타나아사나" },
   { sanskrit: "Janu Shirshasana A", transliteration: "자누 시르샤아사나 A" },
