@@ -127,10 +127,12 @@ export function fromPublicGameScore(row: PublicGameScore, rank: number): GameRan
 
 export async function savePublicGameScore(record: GameRecord) {
   if (!isPublicRankingConfigured()) {
+    console.warn("Public game score insert skipped: Supabase is not configured");
     return { ok: false as const, reason: "unconfigured" as const };
   }
 
   if (!validatePublicGameRecord(record)) {
+    console.warn("Public game score insert skipped: invalid record", record);
     return { ok: false as const, reason: "invalid" as const };
   }
 
@@ -139,9 +141,17 @@ export async function savePublicGameScore(record: GameRecord) {
     return { ok: false as const, reason: "unconfigured" as const };
   }
 
-  const { error } = await client.from("game_scores").insert(toPublicGameScoreInsert(record));
+  const payload = toPublicGameScoreInsert(record);
+  console.log("Supabase game score insert payload", payload);
+
+  const { error } = await client.from("game_scores").insert(payload);
 
   if (error) {
+    console.error("Failed to insert public game score into Supabase", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
     return { ok: false as const, reason: "error" as const };
   }
 

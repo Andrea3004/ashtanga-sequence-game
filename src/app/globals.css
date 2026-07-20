@@ -1037,6 +1037,7 @@ button:focus-visible {
 }
 .social-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 28px;          /* 아이콘 그룹 간격 */
   margin-top: 8px;
@@ -1060,6 +1061,26 @@ button:focus-visible {
   height: 32px;
   display: block;
   transition: transform .2s;
+}
+
+.social-row img.object-contain {
+  object-fit: contain;
+}
+
+.social-row a.website-link {
+  transform: translateY(3px);
+}
+
+@media (max-width: 420px) {
+  .social-row {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .social-row a {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 
 .social-row a:hover img {

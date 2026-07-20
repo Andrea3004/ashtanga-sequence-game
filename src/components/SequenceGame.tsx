@@ -28,7 +28,7 @@ import {
   type GameRecord,
   type GameRecordId,
 } from "@/lib/gameRecords";
-import { isPublicRankingConfigured, savePublicGameScore } from "@/lib/gameScores";
+import { savePublicGameScore } from "@/lib/gameScores";
 
 type LevelSelectMode = "level-select" | "reverse-level-select" | "intermediate-level-select" | "full-reverse-level-select" | "duel-select";
 type SequenceMode = "primary" | "reverse" | "intermediate" | "full-reverse";
@@ -806,13 +806,9 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
 
     if (hasSubmittedPublicScore) return;
 
-    if (!isPublicRankingConfigured()) {
-      setPublicSaveStatus("unconfigured");
-      return;
-    }
-
     setPublicSaveStatus("saving");
     setHasSubmittedPublicScore(true);
+    console.log("savePublicScore called");
     const publicResult = await savePublicGameScore(record);
 
     if (publicResult.ok) {
@@ -1158,6 +1154,23 @@ export default function SequenceGame({ initialMode = "home" }: { initialMode?: E
   <a href="https://www.instagram.com/ashtangayoga_korea" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
     <Image src="/icons/Instagram.png" alt="Instagram" width={32} height={32} />
      <span>Instagram</span>
+  </a>
+
+  <a
+    className="website-link"
+    href="https://ashtanga.or.kr"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={locale === "ko" ? "공식 웹사이트" : "Official Website"}
+    onClick={() => {
+      window.gtag?.("event", "studio_cta_click", {
+        cta_location: "game_footer",
+        cta_target: "official_website",
+      });
+    }}
+  >
+    <Image className="object-contain" src="/icons/Website.png" alt="" width={32} height={32} />
+    <span>{locale === "ko" ? "공식 웹사이트" : "Official Website"}</span>
   </a>
 </div>
 
